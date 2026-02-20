@@ -1,30 +1,30 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bitacora/main.dart';
+import 'package:bitacora/core/data/models/user.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('User Model', () {
+    test('User.empty devuelve un usuario vacío', () {
+      expect(User.empty.isEmpty, isTrue);
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('User con datos no está vacío', () {
+      const user = User(id: '1', name: 'Test', email: 'test@test.com');
+      expect(user.isNotEmpty, isTrue);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('User.fromJson parsea correctamente', () {
+      final json = {
+        'id': '123',
+        'name': 'Juan',
+        'email': 'juan@test.com',
+        'phone': '12345678',
+      };
+      final user = User.fromJson(json);
+      expect(user.id, '123');
+      expect(user.name, 'Juan');
+      expect(user.email, 'juan@test.com');
+      expect(user.phone, '12345678');
+    });
   });
 }
