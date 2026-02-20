@@ -23,15 +23,16 @@ dependencies:
   bloc: ^9.2.0
   equatable: ^2.0.7
 
-  # HTTP & Networking
+  # Supabase (Backend-as-a-Service)
+  supabase_flutter: ^2.9.0
+
+  # HTTP & Networking (para APIs externas si se necesitan)
   dio: ^5.9.1
-  socket_io_client: ^3.1.4
 
   # Dependency Injection
   get_it: ^8.3.0
 
   # Storage
-  flutter_secure_storage: ^9.2.4
   shared_preferences: ^2.5.4
 
   # Forms
@@ -50,8 +51,8 @@ dependencies:
   # Permissions
   permission_handler: ^12.0.1
 
-  # JWT
-  jwt_decoder: ^2.0.1
+  # Utilities
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -63,7 +64,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # assets:
+  assets:
+    - .env
   #   - assets/images/
   #   - assets/icons/
   #   - assets/lottie/

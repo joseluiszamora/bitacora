@@ -39,13 +39,14 @@ lib/
 │   │   ├── app_defaults.dart        # Tamaños, márgenes, radios, tipografía
 │   │   ├── app_icons.dart           # Iconos personalizados
 │   │   ├── app_images.dart          # Rutas a imágenes
-│   │   └── config.dart              # URLs base de la API y claves
+│   │   └── config.dart              # Configuración de Supabase y constantes
 │   ├── data/
 │   │   ├── api/
-│   │   │   ├── api_client.dart      # Cliente Dio con interceptores
+│   │   │   ├── api_client.dart      # Cliente Supabase + Dio (APIs externas)
 │   │   │   └── network_exception.dart
+│   │   ├── supabase_helper.dart     # Helpers de acceso rápido a Supabase
 │   │   ├── models/                  # Modelos de datos (User, Bitacora, etc.)
-│   │   ├── providers/               # Proveedores de datos (llamadas API + LocalStorage)
+│   │   ├── providers/               # Proveedores de datos (Supabase + LocalStorage)
 │   │   └── repositories/           # Repositorios (capa intermedia entre BLoC y Provider)
 │   ├── layouts/                     # Layouts reutilizables (auth, modales, sub-páginas)
 │   ├── services/                    # Servicios (navegación, notificaciones)
@@ -65,13 +66,13 @@ lib/
 Se utiliza **BLoC Pattern** con la siguiente separación por capas:
 
 ```
-Vista (Widget) → BLoC (Lógica) → Repository → Provider → API (Dio)
+Vista (Widget) → BLoC (Lógica) → Repository → Provider → Supabase (Auth / DB / Storage / Realtime)
 ```
 
 - **Widget**: Solo UI. Consume estados del BLoC con `BlocBuilder` / `BlocListener`.
 - **BLoC**: Maneja eventos y emite estados. Usa `Equatable` para comparación de estados.
 - **Repository**: Orquesta llamadas a uno o más providers.
-- **Provider**: Realiza llamadas HTTP (Dio) o acceso a almacenamiento local.
+- **Provider**: Interactúa con Supabase (Auth, Database, Storage, Realtime) o APIs externas vía Dio.
 - **Model**: Clases de datos inmutables.
 
 ---
@@ -82,20 +83,20 @@ Vista (Widget) → BLoC (Lógica) → Repository → Provider → API (Dio)
 
 | Categoría            | Paquete                                                   | Versión                  |
 | -------------------- | --------------------------------------------------------- | ------------------------ |
+| **Backend (BaaS)**   | `supabase_flutter`                                        | ^2.9.0                   |
 | **State Management** | `flutter_bloc` / `bloc`                                   | ^9.1.1 / ^9.2.0          |
-| **HTTP Client**      | `dio`                                                     | ^5.9.1                   |
+| **HTTP Client**      | `dio` (para APIs externas)                                | ^5.9.1                   |
 | **DI (Inyección)**   | `get_it`                                                  | ^8.3.0                   |
-| **Almacenamiento**   | `flutter_secure_storage` / `shared_preferences`           | ^9.2.4 / ^2.5.4          |
+| **Almacenamiento**   | `shared_preferences`                                      | ^2.5.4                   |
 | **Formularios**      | `flutter_form_builder` / `formz`                          | ^10.3.0+1 / ^0.8.0       |
 | **Mapas**            | `flutter_map` / `latlong2`                                | ^8.2.2 / ^0.9.1          |
 | **Imágenes**         | `image_picker` / `image_cropper` / `cached_network_image` | ^1.2.1 / ^9.1.0 / ^3.3.1 |
 | **Iconos**           | `font_awesome_flutter`                                    | ^10.12.0                 |
 | **Animaciones**      | `lottie`                                                  | ^3.1.2                   |
 | **SVG**              | `flutter_svg`                                             | ^2.2.3                   |
-| **WebSocket**        | `socket_io_client`                                        | ^3.1.4                   |
 | **Permisos**         | `permission_handler`                                      | ^12.0.1                  |
-| **JWT**              | `jwt_decoder`                                             | ^2.0.1                   |
 | **Geolocalización**  | `geolocator`                                              | ^14.0.2                  |
+| **Env Variables**    | `flutter_dotenv`                                          | ^5.2.1                   |
 
 ### Android
 
@@ -226,19 +227,55 @@ views/bitacora/
 
 ## 🔌 Capa de Datos
 
-### Cliente HTTP (Dio)
+### Supabase (Backend-as-a-Service)
 
-- Base URL configurada en `Config.baseMTVirtual`.
-- Interceptores en `AppInterceptors`:
-  - Adjunta `Authorization: Bearer <token>` automáticamente si el header `requiresToken` está presente.
-  - Maneja errores de conexión y redirige a logout si el token expira.
+Este proyecto usa **Supabase** como backend principal, proporcionando:
+
+| Módulo             | Uso en la app                                    |
+| ------------------ | ------------------------------------------------ |
+| **Auth**           | Login, registro, sesión, recuperar contraseña    |
+| **Database**       | Tablas Postgres (bitácoras, perfiles, vehículos) |
+| **Storage**        | Imágenes de usuario, fotos de carga              |
+| **Realtime**       | Suscripción a cambios en bitácoras               |
+| **Edge Functions** | Lógica de servidor (notificaciones, reportes)    |
+
+#### Configuración
+
+- Las credenciales (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) se cargan desde `.env` usando `flutter_dotenv`.
+- **NUNCA** hardcodear credenciales en el código.
+- El archivo `.env` está excluido del repositorio (`.gitignore`); usar `.env.example` como referencia.
+- La inicialización se realiza en `main.dart` antes de cualquier widget.
+
+#### Acceso al cliente
+
+```dart
+// Vía ApiClient (recomendado para providers)
+import 'core/data/api/api_client.dart';
+final user = ApiClient.currentUser;
+final db = ApiClient.supabase.from('bitacoras');
+
+// Vía SupabaseHelper (accesos rápidos)
+import 'core/data/supabase_helper.dart';
+final data = await SupabaseHelper.from('bitacoras').select();
+```
+
+#### Autenticación
+
+- Supabase maneja tokens (access y refresh) **internamente** — no se usa `flutter_secure_storage`.
+- El `AuthenticationBloc` escucha `onAuthStateChange` de Supabase en tiempo real.
+- Los cambios de sesión (login, logout, token refresh) se propagan automáticamente.
+
+### Cliente HTTP auxiliar (Dio)
+
+- Se mantiene Dio **solo** para llamadas a APIs REST externas (no-Supabase).
+- Interceptor `_SupabaseTokenInterceptor` inyecta el token de Supabase si `requiresToken` está presente.
 - Timeouts: `connectTimeout: 10s`, `receiveTimeout: 10s`.
 
 ### Almacenamiento Local
 
-- `flutter_secure_storage`: Para datos sensibles (token JWT, contraseña).
-- `shared_preferences`: Para preferencias del usuario (tema).
+- `shared_preferences`: Para preferencias del usuario (tema, onboarding).
 - Acceso centralizado via `LocalStorage` en `lib/core/data/providers/local_storage.dart`.
+- **NOTA**: Los tokens de sesión los maneja Supabase internamente.
 
 ---
 

@@ -16,3 +16,13 @@ final class AuthenticationStatusChecked extends AuthenticationEvent {
 final class AuthenticationLogoutRequested extends AuthenticationEvent {
   const AuthenticationLogoutRequested();
 }
+
+/// Evento interno: Supabase notificó un cambio de estado de auth.
+final class _AuthenticationStateChanged extends AuthenticationEvent {
+  const _AuthenticationStateChanged(this.event);
+
+  final sb.AuthChangeEvent event;
+
+  @override
+  List<Object?> get props => [event];
+}

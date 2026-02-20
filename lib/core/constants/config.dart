@@ -1,9 +1,12 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 /// Configuración global de la aplicación.
 class Config {
   Config._();
 
-  // URLs base de la API
-  static const String baseMTVirtual = 'https://api.example.com/v1';
+  // === Supabase ===
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
   // Timeouts (en milisegundos)
   static const int connectTimeout = 10000;

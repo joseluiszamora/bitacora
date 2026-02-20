@@ -1,39 +1,18 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Acceso centralizado a almacenamiento local.
+///
+/// NOTA: Supabase maneja los tokens (access, refresh) internamente
+/// usando su propio almacenamiento seguro. No es necesario guardarlos
+/// manualmente con FlutterSecureStorage.
+///
+/// Esta clase se usa solo para preferencias de la app.
 class LocalStorage {
   LocalStorage._();
 
-  static const _secureStorage = FlutterSecureStorage();
-
   // === Claves ===
-  static const String _tokenKey = 'auth_token';
-  static const String _refreshTokenKey = 'refresh_token';
   static const String _themeKey = 'app_theme';
-
-  // === Token (Secure Storage) ===
-
-  static Future<void> saveToken(String token) async {
-    await _secureStorage.write(key: _tokenKey, value: token);
-  }
-
-  static Future<String?> getToken() async {
-    return await _secureStorage.read(key: _tokenKey);
-  }
-
-  static Future<void> saveRefreshToken(String token) async {
-    await _secureStorage.write(key: _refreshTokenKey, value: token);
-  }
-
-  static Future<String?> getRefreshToken() async {
-    return await _secureStorage.read(key: _refreshTokenKey);
-  }
-
-  static Future<void> deleteTokens() async {
-    await _secureStorage.delete(key: _tokenKey);
-    await _secureStorage.delete(key: _refreshTokenKey);
-  }
+  static const String _onboardingKey = 'onboarding_complete';
 
   // === Preferencias (Shared Preferences) ===
 
@@ -47,10 +26,19 @@ class LocalStorage {
     return prefs.getString(_themeKey);
   }
 
+  static Future<void> setOnboardingComplete(bool complete) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingKey, complete);
+  }
+
+  static Future<bool> isOnboardingComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingKey) ?? false;
+  }
+
   // === Limpiar todo ===
 
   static Future<void> clearAll() async {
-    await _secureStorage.deleteAll();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
