@@ -1,7 +1,9 @@
 import 'package:get_it/get_it.dart';
 
 import '../data/repositories/auth_repository.dart';
+import '../data/repositories/company_repository.dart';
 import 'auth/authentication_bloc.dart';
+import 'company/company_bloc.dart';
 import 'login/login_bloc.dart';
 import 'permission/permission_bloc.dart';
 
@@ -11,6 +13,7 @@ final getIt = GetIt.instance;
 void serviceLocatorInit() {
   // === Repositorios (Lazy Singletons) ===
   getIt.registerLazySingleton<AuthRepository>(() => AuthRepository());
+  getIt.registerLazySingleton<CompanyRepository>(() => CompanyRepository());
 
   // === BLoCs globales (Singletons) ===
   getIt.registerSingleton<AuthenticationBloc>(
@@ -23,6 +26,10 @@ void serviceLocatorInit() {
   // === BLoCs de feature (Factory — se crean por pantalla) ===
   getIt.registerFactory<LoginBloc>(
     () => LoginBloc(authRepository: getIt<AuthRepository>()),
+  );
+
+  getIt.registerFactory<CompanyBloc>(
+    () => CompanyBloc(companyRepository: getIt<CompanyRepository>()),
   );
 
   // === Servicios (Lazy Singletons) ===

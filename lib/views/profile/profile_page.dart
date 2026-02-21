@@ -5,6 +5,7 @@ import '../../core/blocs/auth/authentication_bloc.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_defaults.dart';
 import '../../core/data/models/user_role.dart';
+import '../companies/companies_page.dart';
 
 /// Pantalla de perfil de usuario.
 class ProfilePage extends StatelessWidget {
@@ -133,6 +134,23 @@ class ProfilePage extends StatelessWidget {
                   ],
 
                   const SizedBox(height: AppDefaults.marginBig),
+
+                  // Opciones de administración (solo super_admin)
+                  if (user.role == UserRole.superAdmin) ...[
+                    _buildProfileOption(
+                      icon: Icons.business,
+                      title: 'Administrar Compañías',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const CompaniesPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                  ],
+
                   _buildProfileOption(
                     icon: Icons.settings_outlined,
                     title: 'Configuración',

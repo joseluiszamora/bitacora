@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:bitacora/core/data/models/company.dart';
 import 'package:bitacora/core/data/models/user.dart';
 import 'package:bitacora/core/data/models/user_role.dart';
+import 'package:bitacora/core/blocs/company/company_bloc.dart';
 
 void main() {
   group('User Model', () {
@@ -93,7 +94,7 @@ void main() {
       );
       expect(updated.name, 'Ana María');
       expect(updated.role, UserRole.supervisor);
-      expect(updated.email, 'ana@t.com'); // sin cambiar
+      expect(updated.email, 'ana@t.com');
     });
   });
 
@@ -153,6 +154,70 @@ void main() {
       expect(updated.name, 'Empresa B');
       expect(updated.nit, '111');
       expect(updated.id, '1');
+    });
+
+    test('Company.toJson serializa correctamente', () {
+      const company = Company(
+        id: 'c-1',
+        name: 'Test',
+        socialReason: 'Test SRL',
+        nit: '123',
+      );
+      final json = company.toJson();
+      expect(json['id'], 'c-1');
+      expect(json['name'], 'Test');
+      expect(json['social_reason'], 'Test SRL');
+      expect(json['nit'], '123');
+      expect(json['status'], 'active');
+    });
+  });
+
+  group('CompanyBloc', () {
+    test('estado inicial es correcto', () {
+      const state = CompanyState();
+      expect(state.status, CompanyStatus.initial);
+      expect(state.companies, isEmpty);
+      expect(state.errorMessage, isEmpty);
+      expect(state.isIdle, isTrue);
+    });
+
+    test('CompanyState.copyWith actualiza campos', () {
+      const state = CompanyState();
+      final updated = state.copyWith(
+        status: CompanyStatus.loaded,
+        companies: [const Company(id: '1', name: 'Test')],
+      );
+      expect(updated.status, CompanyStatus.loaded);
+      expect(updated.companies.length, 1);
+      expect(updated.errorMessage, isEmpty);
+    });
+
+    test('CompanyState.isIdle retorna false durante operaciones', () {
+      const loading = CompanyState(status: CompanyStatus.loading);
+      const creating = CompanyState(status: CompanyStatus.creating);
+      const deleting = CompanyState(status: CompanyStatus.deleting);
+
+      expect(loading.isIdle, isFalse);
+      expect(creating.isIdle, isFalse);
+      expect(deleting.isIdle, isFalse);
+    });
+
+    test('CompanyEvent — CompanyCreateRequested tiene props correctos', () {
+      const event = CompanyCreateRequested(
+        name: 'Test',
+        socialReason: 'Test SRL',
+        nit: '123',
+      );
+      expect(event.name, 'Test');
+      expect(event.socialReason, 'Test SRL');
+      expect(event.nit, '123');
+      expect(event.props, ['Test', 'Test SRL', '123']);
+    });
+
+    test('CompanyEvent — CompanyDeleteRequested tiene props correctos', () {
+      const event = CompanyDeleteRequested('abc-123');
+      expect(event.id, 'abc-123');
+      expect(event.props, ['abc-123']);
     });
   });
 }
