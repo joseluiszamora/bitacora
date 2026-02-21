@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/blocs/auth/authentication_bloc.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_defaults.dart';
+import '../../core/data/models/user_role.dart';
 
 /// Pantalla de perfil de usuario.
 class ProfilePage extends StatelessWidget {
@@ -14,7 +15,7 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Mi Perfil')),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppDefaults.padding),
           child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
             builder: (context, state) {
@@ -51,6 +52,86 @@ class ProfilePage extends StatelessWidget {
                     user.email,
                     style: const TextStyle(fontSize: 14, color: AppColors.grey),
                   ),
+                  const SizedBox(height: 8),
+
+                  // Badge de rol
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _roleColor(user.role).withAlpha(26),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _roleColor(user.role).withAlpha(128),
+                      ),
+                    ),
+                    child: Text(
+                      user.role.shortLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _roleColor(user.role),
+                      ),
+                    ),
+                  ),
+
+                  // Tarjeta de empresa
+                  if (user.company.isNotEmpty) ...[
+                    const SizedBox(height: AppDefaults.margin),
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: AppColors.grey.withAlpha(51)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withAlpha(26),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.business,
+                                color: AppColors.primary,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user.company.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  if (user.company.nit != null)
+                                    Text(
+                                      'NIT: ${user.company.nit}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.grey,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: AppDefaults.marginBig),
                   _buildProfileOption(
                     icon: Icons.settings_outlined,
@@ -79,6 +160,17 @@ class ProfilePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Color por rol para el badge.
+  Color _roleColor(UserRole role) {
+    return switch (role) {
+      UserRole.superAdmin => AppColors.error,
+      UserRole.admin => AppColors.primaryAccent,
+      UserRole.supervisor => AppColors.gold,
+      UserRole.driver => AppColors.success,
+      UserRole.finance => AppColors.warning,
+    };
   }
 
   void _showLogoutDialog(BuildContext context) {

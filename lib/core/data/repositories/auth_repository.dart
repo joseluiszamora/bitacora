@@ -38,12 +38,12 @@ class AuthRepository {
   Future<User> signUp({
     required String email,
     required String password,
-    String? name,
+    String? fullName,
   }) async {
     final response = await _authProvider.signUp(
       email: email,
       password: password,
-      metadata: name != null ? {'name': name} : null,
+      metadata: fullName != null ? {'full_name': fullName} : null,
     );
 
     final supabaseUser = response.user;
@@ -54,11 +54,31 @@ class AuthRepository {
     return User.fromSupabaseUser(supabaseUser);
   }
 
-  /// Obtener el usuario actual desde la sesión de Supabase.
+  /// Obtener el usuario actual desde la sesión de Supabase (datos básicos).
   User getCurrentUser() {
     final supabaseUser = _authProvider.currentUser;
     if (supabaseUser == null) return User.empty;
     return User.fromSupabaseUser(supabaseUser);
+  }
+
+  /// Obtener el perfil completo (rol, empresa) desde la RPC `get_my_profile()`.
+  ///
+  /// Si la RPC falla, retorna el usuario básico de Supabase Auth.
+  Future<User> getFullProfile() async {
+    try {
+      final profileData = await _authProvider.getFullProfile();
+      if (profileData != null) {
+        // Agregar el email desde Supabase Auth ya que la RPC no lo incluye.
+        final supabaseUser = _authProvider.currentUser;
+        if (supabaseUser != null) {
+          profileData['email'] = supabaseUser.email ?? '';
+        }
+        return User.fromProfile(profileData);
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error obteniendo perfil completo: $e');
+    }
+    return getCurrentUser();
   }
 
   /// Verificar si hay una sesión activa.
@@ -78,13 +98,11 @@ class AuthRepository {
     await _authProvider.resetPassword(email);
   }
 
-  /// Actualizar datos del perfil del usuario.
-  Future<User> updateProfile(Map<String, dynamic> data) async {
-    final response = await _authProvider.updateUserData(data);
-    final updatedUser = response.user;
-    if (updatedUser == null) {
-      throw Exception('No se pudo actualizar el perfil.');
-    }
-    return User.fromSupabaseUser(updatedUser);
+  /// Actualizar datos del perfil del usuario en la tabla `profiles`.
+  Future<void> updateProfile({
+    required String userId,
+    required Map<String, dynamic> data,
+  }) async {
+    await _authProvider.updateProfile(userId: userId, data: data);
   }
 }

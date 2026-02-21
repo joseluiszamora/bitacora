@@ -40,7 +40,7 @@ class AuthenticationBloc
   ) async {
     try {
       if (_authRepository.isAuthenticated) {
-        final user = _authRepository.getCurrentUser();
+        final user = await _authRepository.getFullProfile();
         emit(
           state.copyWith(
             status: AuthenticationStatus.authenticated,
@@ -57,15 +57,15 @@ class AuthenticationBloc
   }
 
   /// Reaccionar a cambios del stream de Supabase Auth.
-  void _onAuthStateChanged(
+  Future<void> _onAuthStateChanged(
     _AuthenticationStateChanged event,
     Emitter<AuthenticationState> emit,
-  ) {
+  ) async {
     switch (event.event) {
       case sb.AuthChangeEvent.signedIn:
       case sb.AuthChangeEvent.tokenRefreshed:
       case sb.AuthChangeEvent.userUpdated:
-        final user = _authRepository.getCurrentUser();
+        final user = await _authRepository.getFullProfile();
         emit(
           state.copyWith(
             status: AuthenticationStatus.authenticated,
@@ -80,7 +80,7 @@ class AuthenticationBloc
         );
       case sb.AuthChangeEvent.initialSession:
         if (_authRepository.isAuthenticated) {
-          final user = _authRepository.getCurrentUser();
+          final user = await _authRepository.getFullProfile();
           emit(
             state.copyWith(
               status: AuthenticationStatus.authenticated,
