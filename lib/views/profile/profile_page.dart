@@ -5,6 +5,7 @@ import '../../core/blocs/auth/authentication_bloc.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_defaults.dart';
 import '../../core/data/models/user_role.dart';
+import '../client_companies/client_companies_page.dart';
 import '../companies/companies_page.dart';
 import '../users/users_page.dart';
 
@@ -134,6 +135,68 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ],
 
+                  // Tarjeta de empresa cliente
+                  if (user.clientCompany.isNotEmpty) ...[
+                    const SizedBox(height: AppDefaults.margin),
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: AppColors.grey.withAlpha(51)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.gold.withAlpha(26),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.storefront,
+                                color: AppColors.gold,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user.clientCompany.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'Empresa Cliente',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.grey,
+                                    ),
+                                  ),
+                                  if (user.clientCompany.nit != null)
+                                    Text(
+                                      'NIT: ${user.clientCompany.nit}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.grey,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: AppDefaults.marginBig),
 
                   // Opciones de administración (solo super_admin)
@@ -150,11 +213,24 @@ class ProfilePage extends StatelessWidget {
                       },
                     ),
                     const Divider(height: 1),
+                    _buildProfileOption(
+                      icon: Icons.storefront,
+                      title: 'Administrar Empresas Cliente',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ClientCompaniesPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
                   ],
 
-                  // Administrar usuarios (super_admin y admin)
+                  // Administrar usuarios (super_admin, admin, clientAdmin)
                   if (user.role == UserRole.superAdmin ||
-                      user.role == UserRole.admin) ...[
+                      user.role == UserRole.admin ||
+                      user.role == UserRole.clientAdmin) ...[
                     _buildProfileOption(
                       icon: Icons.people,
                       title: 'Administrar Usuarios',
@@ -206,6 +282,8 @@ class ProfilePage extends StatelessWidget {
       UserRole.supervisor => AppColors.gold,
       UserRole.driver => AppColors.success,
       UserRole.finance => AppColors.warning,
+      UserRole.clientAdmin => AppColors.primaryAccent,
+      UserRole.clientUser => AppColors.grey,
     };
   }
 

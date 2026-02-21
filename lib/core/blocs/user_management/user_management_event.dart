@@ -20,6 +20,7 @@ final class UserManagementCreateRequested extends UserManagementEvent {
     required this.fullName,
     required this.role,
     this.companyId,
+    this.clientCompanyId,
     this.phone,
   });
 
@@ -28,6 +29,7 @@ final class UserManagementCreateRequested extends UserManagementEvent {
   final String fullName;
   final UserRole role;
   final String? companyId;
+  final String? clientCompanyId;
   final String? phone;
 
   @override
@@ -37,6 +39,7 @@ final class UserManagementCreateRequested extends UserManagementEvent {
     fullName,
     role,
     companyId,
+    clientCompanyId,
     phone,
   ];
 }
@@ -48,6 +51,7 @@ final class UserManagementUpdateRequested extends UserManagementEvent {
     this.fullName,
     this.role,
     this.companyId,
+    this.clientCompanyId,
     this.phone,
     this.isActive,
   });
@@ -56,6 +60,7 @@ final class UserManagementUpdateRequested extends UserManagementEvent {
   final String? fullName;
   final String? role;
   final String? companyId;
+  final String? clientCompanyId;
   final String? phone;
   final bool? isActive;
 
@@ -65,6 +70,7 @@ final class UserManagementUpdateRequested extends UserManagementEvent {
     fullName,
     role,
     companyId,
+    clientCompanyId,
     phone,
     isActive,
   ];

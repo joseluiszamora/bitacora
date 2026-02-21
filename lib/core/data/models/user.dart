@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import 'client_company.dart';
 import 'company.dart';
 import 'user_role.dart';
 
@@ -14,6 +15,7 @@ class User extends Equatable {
     this.phone,
     this.role = UserRole.driver,
     this.company = Company.empty,
+    this.clientCompany = ClientCompany.empty,
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
@@ -26,6 +28,7 @@ class User extends Equatable {
   final String? phone;
   final UserRole role;
   final Company company;
+  final ClientCompany clientCompany;
   final bool isActive;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -57,6 +60,7 @@ class User extends Equatable {
   /// Espera un JSON con los campos del perfil + un objeto `company` anidado.
   factory User.fromProfile(Map<String, dynamic> json) {
     final companyData = json['company'];
+    final clientCompanyData = json['client_company'];
     return User(
       id: json['id'] as String? ?? '',
       name: json['full_name'] as String? ?? '',
@@ -67,6 +71,9 @@ class User extends Equatable {
       company: companyData is Map<String, dynamic>
           ? Company.fromJson(companyData)
           : Company.empty,
+      clientCompany: clientCompanyData is Map<String, dynamic>
+          ? ClientCompany.fromJson(clientCompanyData)
+          : ClientCompany.empty,
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)
@@ -108,6 +115,7 @@ class User extends Equatable {
     String? phone,
     UserRole? role,
     Company? company,
+    ClientCompany? clientCompany,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -120,6 +128,7 @@ class User extends Equatable {
       phone: phone ?? this.phone,
       role: role ?? this.role,
       company: company ?? this.company,
+      clientCompany: clientCompany ?? this.clientCompany,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -135,6 +144,7 @@ class User extends Equatable {
     phone,
     role,
     company,
+    clientCompany,
     isActive,
     createdAt,
     updatedAt,

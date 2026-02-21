@@ -18,6 +18,7 @@ class UserManagementBloc
   UserManagementBloc({
     required this.currentRole,
     this.currentCompanyId,
+    this.currentClientCompanyId,
     UserRepository? userRepository,
   }) : _repository = userRepository ?? UserRepository(),
        super(const UserManagementState()) {
@@ -29,6 +30,7 @@ class UserManagementBloc
 
   final UserRole currentRole;
   final String? currentCompanyId;
+  final String? currentClientCompanyId;
   final UserRepository _repository;
 
   // ─── Load ────────────────────────────────────────────────────────────
@@ -44,6 +46,7 @@ class UserManagementBloc
       final users = await _repository.getAll(
         currentRole: currentRole,
         currentCompanyId: currentCompanyId,
+        currentClientCompanyId: currentClientCompanyId,
       );
       emit(state.copyWith(status: UserManagementStatus.loaded, users: users));
     } catch (e) {
@@ -73,6 +76,7 @@ class UserManagementBloc
         fullName: event.fullName,
         role: event.role,
         companyId: event.companyId,
+        clientCompanyId: event.clientCompanyId,
         phone: event.phone,
       );
       final updated = List<User>.from(state.users)..add(newUser);
@@ -106,6 +110,7 @@ class UserManagementBloc
         fullName: event.fullName,
         role: event.role,
         companyId: event.companyId,
+        clientCompanyId: event.clientCompanyId,
         phone: event.phone,
         isActive: event.isActive,
       );

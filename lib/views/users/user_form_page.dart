@@ -5,20 +5,23 @@ import '../../core/blocs/company/company_bloc.dart';
 import '../../core/blocs/user_management/user_management_bloc.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_defaults.dart';
+import '../../core/data/models/client_company.dart';
 import '../../core/data/models/company.dart';
 import '../../core/data/models/user.dart';
 import '../../core/data/models/user_role.dart';
+import '../../core/data/repositories/client_company_repository.dart';
 
 /// Formulario para crear o editar un usuario.
 ///
 /// Requiere el rol del usuario autenticado para filtrar los roles asignables
-/// y, opcionalmente, el `companyId` del admin para fijarlo.
+/// y, opcionalmente, el `companyId` y `clientCompanyId` del admin para fijarlos.
 class UserFormPage extends StatefulWidget {
   const UserFormPage({
     super.key,
     this.user,
     required this.currentUserRole,
     this.currentUserCompanyId,
+    this.currentUserClientCompanyId,
   });
 
   /// Si es `null`, se crea un nuevo usuario. Si tiene valor, se edita.
@@ -29,6 +32,9 @@ class UserFormPage extends StatefulWidget {
 
   /// Company ID del usuario autenticado (para fijar empresa si es admin).
   final String? currentUserCompanyId;
+
+  /// Client Company ID del usuario autenticado (para fijar si es clientAdmin).
+  final String? currentUserClientCompanyId;
 
   bool get isEditing => user != null;
 
@@ -46,13 +52,18 @@ class _UserFormPageState extends State<UserFormPage> {
 
   late UserRole _selectedRole;
   String? _selectedCompanyId;
+  String? _selectedClientCompanyId;
 
   /// Roles que el usuario actual puede asignar.
   late List<UserRole> _assignableRoles;
 
-  /// Lista de compañías para el dropdown.
+  /// Lista de compañías (transportistas) para el dropdown.
   List<Company> _companies = [];
   bool _loadingCompanies = true;
+
+  /// Lista de empresas cliente para el dropdown.
+  List<ClientCompany> _clientCompanies = [];
+  bool _loadingClientCompanies = true;
 
   @override
   void initState() {
@@ -75,18 +86,29 @@ class _UserFormPageState extends State<UserFormPage> {
           : UserRole.driver;
     }
 
-    // Company
+    // Company (transportista)
     if (widget.currentUserRole == UserRole.admin) {
-      // Admin solo puede asignar a su propia compañía
       _selectedCompanyId = widget.currentUserCompanyId;
       _loadingCompanies = false;
     } else {
       _selectedCompanyId = widget.user?.company.id;
     }
 
-    // Cargar compañías para super_admin
+    // Client Company
+    if (widget.currentUserRole == UserRole.clientAdmin) {
+      _selectedClientCompanyId = widget.currentUserClientCompanyId;
+      _loadingClientCompanies = false;
+    } else {
+      _selectedClientCompanyId = widget.user?.clientCompany.id;
+    }
+
+    // Cargar listas para super_admin
     if (widget.currentUserRole == UserRole.superAdmin) {
       _loadCompanies();
+      _loadClientCompanies();
+    } else {
+      if (_loadingCompanies) _loadingCompanies = false;
+      if (_loadingClientCompanies) _loadingClientCompanies = false;
     }
   }
 
@@ -98,10 +120,15 @@ class _UserFormPageState extends State<UserFormPage> {
         UserRole.supervisor,
         UserRole.driver,
         UserRole.finance,
+        UserRole.clientAdmin,
+        UserRole.clientUser,
       ];
     }
     if (currentRole == UserRole.admin) {
       return [UserRole.supervisor, UserRole.driver, UserRole.finance];
+    }
+    if (currentRole == UserRole.clientAdmin) {
+      return [UserRole.clientUser];
     }
     return [];
   }
@@ -125,6 +152,21 @@ class _UserFormPageState extends State<UserFormPage> {
       await companyBloc.close();
     } catch (_) {
       if (mounted) setState(() => _loadingCompanies = false);
+    }
+  }
+
+  Future<void> _loadClientCompanies() async {
+    try {
+      final repo = ClientCompanyRepository();
+      final list = await repo.getAll();
+      if (mounted) {
+        setState(() {
+          _clientCompanies = list;
+          _loadingClientCompanies = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingClientCompanies = false);
     }
   }
 
@@ -292,8 +334,10 @@ class _UserFormPageState extends State<UserFormPage> {
                   ),
                   const SizedBox(height: AppDefaults.margin),
 
-                  // Compañía (super_admin elige, admin se fija)
-                  if (widget.currentUserRole == UserRole.superAdmin) ...[
+                  // Compañía transportista (super_admin elige, admin se fija)
+                  // Solo se muestra para roles de transporte
+                  if (_selectedRole.isTransportRole &&
+                      widget.currentUserRole == UserRole.superAdmin) ...[
                     if (_loadingCompanies)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 16),
@@ -315,7 +359,7 @@ class _UserFormPageState extends State<UserFormPage> {
                             ? _selectedCompanyId
                             : null,
                         decoration: _inputDecoration(
-                          label: 'Compañía',
+                          label: 'Compañía Transportista',
                           icon: Icons.business_outlined,
                         ),
                         items: [
@@ -332,6 +376,53 @@ class _UserFormPageState extends State<UserFormPage> {
                         ],
                         onChanged: (value) {
                           setState(() => _selectedCompanyId = value);
+                        },
+                      ),
+                    const SizedBox(height: AppDefaults.margin),
+                  ],
+
+                  // Empresa cliente (super_admin elige, clientAdmin se fija)
+                  // Solo se muestra para roles de cliente
+                  if (_selectedRole.isClientRole &&
+                      widget.currentUserRole == UserRole.superAdmin) ...[
+                    if (_loadingClientCompanies)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                    else
+                      DropdownButtonFormField<String>(
+                        initialValue:
+                            _selectedClientCompanyId != null &&
+                                _clientCompanies.any(
+                                  (c) => c.id == _selectedClientCompanyId,
+                                )
+                            ? _selectedClientCompanyId
+                            : null,
+                        decoration: _inputDecoration(
+                          label: 'Empresa Cliente',
+                          icon: Icons.storefront_outlined,
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Sin empresa cliente'),
+                          ),
+                          ..._clientCompanies.map((cc) {
+                            return DropdownMenuItem(
+                              value: cc.id,
+                              child: Text(cc.name),
+                            );
+                          }),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedClientCompanyId = value);
                         },
                       ),
                     const SizedBox(height: AppDefaults.margin),
@@ -394,13 +485,20 @@ class _UserFormPageState extends State<UserFormPage> {
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim();
 
+    // Determinar qué ID enviar según el tipo de rol seleccionado
+    final companyId = _selectedRole.isTransportRole ? _selectedCompanyId : null;
+    final clientCompanyId = _selectedRole.isClientRole
+        ? _selectedClientCompanyId
+        : null;
+
     if (widget.isEditing) {
       bloc.add(
         UserManagementUpdateRequested(
           userId: widget.user!.id,
           fullName: name,
           role: _selectedRole.value,
-          companyId: _selectedCompanyId,
+          companyId: companyId,
+          clientCompanyId: clientCompanyId,
           phone: phone.isNotEmpty ? phone : null,
         ),
       );
@@ -411,7 +509,8 @@ class _UserFormPageState extends State<UserFormPage> {
           password: _passwordController.text,
           fullName: name,
           role: _selectedRole,
-          companyId: _selectedCompanyId,
+          companyId: companyId,
+          clientCompanyId: clientCompanyId,
           phone: phone.isNotEmpty ? phone : null,
         ),
       );

@@ -24,6 +24,7 @@ class UsersPage extends StatelessWidget {
       create: (_) => UserManagementBloc(
         currentRole: currentUser.role,
         currentCompanyId: currentUser.company.id,
+        currentClientCompanyId: currentUser.clientCompany.id,
       )..add(const UserManagementLoadRequested()),
       child: const _UsersView(),
     );
@@ -157,6 +158,7 @@ class _UsersView extends StatelessWidget {
             user: user,
             currentUserRole: authState.user.role,
             currentUserCompanyId: authState.user.company.id,
+            currentUserClientCompanyId: authState.user.clientCompany.id,
           ),
         ),
       ),
@@ -278,6 +280,17 @@ class _UserCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (user.clientCompany.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '🏢 ${user.clientCompany.name}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.grey.withAlpha(179),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -360,6 +373,8 @@ class _UserCard extends StatelessWidget {
       UserRole.supervisor => AppColors.gold,
       UserRole.driver => AppColors.success,
       UserRole.finance => AppColors.warning,
+      UserRole.clientAdmin => AppColors.primaryAccent,
+      UserRole.clientUser => AppColors.grey,
     };
   }
 }
