@@ -4,6 +4,7 @@ import 'package:bitacora/core/data/models/company.dart';
 import 'package:bitacora/core/data/models/user.dart';
 import 'package:bitacora/core/data/models/user_role.dart';
 import 'package:bitacora/core/blocs/company/company_bloc.dart';
+import 'package:bitacora/core/blocs/user_management/user_management_bloc.dart';
 
 void main() {
   group('User Model', () {
@@ -218,6 +219,97 @@ void main() {
       const event = CompanyDeleteRequested('abc-123');
       expect(event.id, 'abc-123');
       expect(event.props, ['abc-123']);
+    });
+  });
+
+  group('UserManagementBloc', () {
+    test('estado inicial es correcto', () {
+      const state = UserManagementState();
+      expect(state.status, UserManagementStatus.initial);
+      expect(state.users, isEmpty);
+      expect(state.errorMessage, isEmpty);
+      expect(state.isIdle, isTrue);
+    });
+
+    test('UserManagementState.copyWith actualiza campos', () {
+      const state = UserManagementState();
+      final updated = state.copyWith(
+        status: UserManagementStatus.loaded,
+        users: [const User(id: '1', name: 'Test', email: 'test@t.com')],
+      );
+      expect(updated.status, UserManagementStatus.loaded);
+      expect(updated.users.length, 1);
+      expect(updated.errorMessage, isEmpty);
+    });
+
+    test('UserManagementState.isIdle retorna false durante operaciones', () {
+      const loading = UserManagementState(status: UserManagementStatus.loading);
+      const creating = UserManagementState(
+        status: UserManagementStatus.creating,
+      );
+      const updating = UserManagementState(
+        status: UserManagementStatus.updating,
+      );
+
+      expect(loading.isIdle, isFalse);
+      expect(creating.isIdle, isFalse);
+      expect(updating.isIdle, isFalse);
+    });
+
+    test('UserManagementEvent — CreateRequested tiene props correctos', () {
+      const event = UserManagementCreateRequested(
+        email: 'test@t.com',
+        password: '123456',
+        fullName: 'Test User',
+        role: UserRole.driver,
+        companyId: 'comp-1',
+        phone: '77700000',
+      );
+      expect(event.email, 'test@t.com');
+      expect(event.password, '123456');
+      expect(event.fullName, 'Test User');
+      expect(event.role, UserRole.driver);
+      expect(event.companyId, 'comp-1');
+      expect(event.phone, '77700000');
+      expect(event.props, [
+        'test@t.com',
+        '123456',
+        'Test User',
+        UserRole.driver,
+        'comp-1',
+        '77700000',
+      ]);
+    });
+
+    test('UserManagementEvent — UpdateRequested tiene props correctos', () {
+      const event = UserManagementUpdateRequested(
+        userId: 'u-1',
+        fullName: 'Updated',
+        role: 'admin',
+        companyId: 'comp-2',
+      );
+      expect(event.userId, 'u-1');
+      expect(event.fullName, 'Updated');
+      expect(event.role, 'admin');
+      expect(event.companyId, 'comp-2');
+    });
+
+    test(
+      'UserManagementEvent — ToggleActiveRequested tiene props correctos',
+      () {
+        const event = UserManagementToggleActiveRequested(
+          userId: 'u-1',
+          isActive: false,
+        );
+        expect(event.userId, 'u-1');
+        expect(event.isActive, isFalse);
+        expect(event.props, ['u-1', false]);
+      },
+    );
+
+    test('UserManagementEvent — LoadRequested tiene props vacíos', () {
+      const event = UserManagementLoadRequested();
+      expect(event.props, isEmpty);
     });
   });
 }

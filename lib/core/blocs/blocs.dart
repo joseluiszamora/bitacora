@@ -4,3 +4,4 @@ export 'company/company_bloc.dart';
 export 'login/login_bloc.dart';
 export 'permission/permission_bloc.dart';
 export 'service_locator.dart';
+export 'user_management/user_management_bloc.dart';

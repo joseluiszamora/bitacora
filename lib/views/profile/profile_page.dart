@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_defaults.dart';
 import '../../core/data/models/user_role.dart';
 import '../companies/companies_page.dart';
+import '../users/users_page.dart';
 
 /// Pantalla de perfil de usuario.
 class ProfilePage extends StatelessWidget {
@@ -144,6 +145,23 @@ class ProfilePage extends StatelessWidget {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => const CompaniesPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                  ],
+
+                  // Administrar usuarios (super_admin y admin)
+                  if (user.role == UserRole.superAdmin ||
+                      user.role == UserRole.admin) ...[
+                    _buildProfileOption(
+                      icon: Icons.people,
+                      title: 'Administrar Usuarios',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const UsersPage(),
                           ),
                         );
                       },
