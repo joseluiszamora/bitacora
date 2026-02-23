@@ -7,7 +7,9 @@ import '../../core/constants/app_defaults.dart';
 import '../../core/data/models/user_role.dart';
 import '../client_companies/client_companies_page.dart';
 import '../companies/companies_page.dart';
+import '../settings/settings_page.dart';
 import '../users/users_page.dart';
+import '../vehicles/vehicles_page.dart';
 
 /// Pantalla de perfil de usuario.
 class ProfilePage extends StatelessWidget {
@@ -245,11 +247,32 @@ class ProfilePage extends StatelessWidget {
                     const Divider(height: 1),
                   ],
 
+                  // Administrar vehículos (super_admin, admin)
+                  if (user.role == UserRole.superAdmin ||
+                      user.role == UserRole.admin) ...[
+                    _buildProfileOption(
+                      icon: Icons.local_shipping,
+                      title: 'Administrar Vehículos',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const VehiclesPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                  ],
+
                   _buildProfileOption(
                     icon: Icons.settings_outlined,
                     title: 'Configuración',
                     onTap: () {
-                      // TODO: Navegar a configuración
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const SettingsPage(),
+                        ),
+                      );
                     },
                   ),
                   _buildProfileOption(

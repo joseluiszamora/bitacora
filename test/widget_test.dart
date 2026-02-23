@@ -5,9 +5,14 @@ import 'package:bitacora/core/data/models/company.dart';
 import 'package:bitacora/core/data/models/company_client.dart';
 import 'package:bitacora/core/data/models/user.dart';
 import 'package:bitacora/core/data/models/user_role.dart';
+import 'package:bitacora/core/data/models/vehicle.dart';
+import 'package:bitacora/core/data/models/vehicle_document.dart';
 import 'package:bitacora/core/blocs/company/company_bloc.dart';
 import 'package:bitacora/core/blocs/client_company/client_company_bloc.dart';
 import 'package:bitacora/core/blocs/user_management/user_management_bloc.dart';
+import 'package:bitacora/core/blocs/vehicle/vehicle_bloc.dart';
+import 'package:bitacora/core/blocs/theme/theme_cubit.dart';
+import 'package:flutter/material.dart';
 
 void main() {
   group('User Model', () {
@@ -519,6 +524,332 @@ void main() {
       const event = ClientCompanyDeleteRequested('cc-123');
       expect(event.id, 'cc-123');
       expect(event.props, ['cc-123']);
+    });
+  });
+
+  group('Vehicle Model', () {
+    test('Vehicle.empty está vacío', () {
+      expect(Vehicle.empty.isEmpty, isTrue);
+    });
+
+    test('Vehicle con datos no está vacío', () {
+      const v = Vehicle(id: '1', companyId: 'c-1', plateNumber: 'ABC-123');
+      expect(v.isNotEmpty, isTrue);
+    });
+
+    test('Vehicle.fromJson parsea correctamente', () {
+      final json = {
+        'id': 'v-1',
+        'company_id': 'c-1',
+        'plate_number': 'XYZ-789',
+        'brand': 'Toyota',
+        'model': 'Hilux',
+        'year': 2022,
+        'color': 'Blanco',
+        'chasis_code': 'CH123',
+        'motor_code': 'MT456',
+        'ruat_number': 'R789',
+        'status': 'active',
+        'soat_expiration_date': '2025-12-31',
+        'inspection_expiration_date': '2025-06-30',
+        'insurance_expiration_date': '2025-09-15',
+        'created_at': '2025-01-01T00:00:00Z',
+        'company': {'id': 'c-1', 'name': 'Transportes Monval'},
+      };
+      final v = Vehicle.fromJson(json);
+      expect(v.id, 'v-1');
+      expect(v.companyId, 'c-1');
+      expect(v.plateNumber, 'XYZ-789');
+      expect(v.brand, 'Toyota');
+      expect(v.model, 'Hilux');
+      expect(v.year, 2022);
+      expect(v.color, 'Blanco');
+      expect(v.chasisCode, 'CH123');
+      expect(v.motorCode, 'MT456');
+      expect(v.ruatNumber, 'R789');
+      expect(v.status, VehicleStatus.active);
+      expect(v.soatExpirationDate, isNotNull);
+      expect(v.inspectionExpirationDate, isNotNull);
+      expect(v.insuranceExpirationDate, isNotNull);
+      expect(v.company, isNotNull);
+      expect(v.company!.name, 'Transportes Monval');
+    });
+
+    test('Vehicle.toJson serializa correctamente', () {
+      const v = Vehicle(
+        id: 'v-1',
+        companyId: 'c-1',
+        plateNumber: 'ABC-123',
+        brand: 'Volvo',
+        status: VehicleStatus.maintenance,
+      );
+      final json = v.toJson();
+      expect(json['company_id'], 'c-1');
+      expect(json['plate_number'], 'ABC-123');
+      expect(json['brand'], 'Volvo');
+      expect(json['status'], 'maintenance');
+      // toJson no incluye 'id'
+      expect(json.containsKey('id'), isFalse);
+    });
+
+    test('Vehicle.copyWith crea copia con campos actualizados', () {
+      const original = Vehicle(
+        id: '1',
+        companyId: 'c-1',
+        plateNumber: 'ABC-123',
+      );
+      final updated = original.copyWith(
+        plateNumber: 'DEF-456',
+        brand: 'Mercedes',
+        status: VehicleStatus.inactive,
+      );
+      expect(updated.plateNumber, 'DEF-456');
+      expect(updated.brand, 'Mercedes');
+      expect(updated.status, VehicleStatus.inactive);
+      expect(updated.id, '1');
+      expect(updated.companyId, 'c-1');
+    });
+
+    test('Vehicle.displayName muestra info correcta', () {
+      const v1 = Vehicle(
+        id: '1',
+        companyId: 'c-1',
+        plateNumber: 'ABC-123',
+        brand: 'Toyota',
+        model: 'Hilux',
+        year: 2022,
+      );
+      expect(v1.displayName, 'Toyota Hilux (2022)');
+
+      const v2 = Vehicle(id: '2', companyId: 'c-1', plateNumber: 'XYZ-789');
+      expect(v2.displayName, 'XYZ-789');
+    });
+
+    test('VehicleStatus.fromValue parsea valores válidos', () {
+      expect(VehicleStatus.fromValue('active'), VehicleStatus.active);
+      expect(VehicleStatus.fromValue('maintenance'), VehicleStatus.maintenance);
+      expect(VehicleStatus.fromValue('inactive'), VehicleStatus.inactive);
+      expect(VehicleStatus.fromValue(null), VehicleStatus.active);
+      expect(VehicleStatus.fromValue('unknown'), VehicleStatus.active);
+    });
+
+    test('VehicleStatus.label retorna texto en español', () {
+      expect(VehicleStatus.active.label, 'Activo');
+      expect(VehicleStatus.maintenance.label, 'En Mantenimiento');
+      expect(VehicleStatus.inactive.label, 'Inactivo');
+    });
+  });
+
+  group('VehicleDocument Model', () {
+    test('VehicleDocument.empty está vacío', () {
+      expect(VehicleDocument.empty.isEmpty, isTrue);
+    });
+
+    test('VehicleDocument con datos no está vacío', () {
+      const doc = VehicleDocument(
+        id: '1',
+        vehicleId: 'v-1',
+        type: VehicleDocumentType.soat,
+      );
+      expect(doc.isNotEmpty, isTrue);
+    });
+
+    test('VehicleDocument.fromJson parsea correctamente', () {
+      final json = {
+        'id': 'd-1',
+        'vehicle_id': 'v-1',
+        'type': 'insurance',
+        'file_url': 'https://example.com/doc.pdf',
+        'expiration_date': '2025-12-31',
+        'created_at': '2025-01-01T00:00:00Z',
+      };
+      final doc = VehicleDocument.fromJson(json);
+      expect(doc.id, 'd-1');
+      expect(doc.vehicleId, 'v-1');
+      expect(doc.type, VehicleDocumentType.insurance);
+      expect(doc.fileUrl, 'https://example.com/doc.pdf');
+      expect(doc.expirationDate, isNotNull);
+    });
+
+    test('VehicleDocument.toJson serializa correctamente', () {
+      const doc = VehicleDocument(
+        id: 'd-1',
+        vehicleId: 'v-1',
+        type: VehicleDocumentType.ruat,
+        fileUrl: 'https://example.com/ruat.pdf',
+      );
+      final json = doc.toJson();
+      expect(json['vehicle_id'], 'v-1');
+      expect(json['type'], 'ruat');
+      expect(json['file_url'], 'https://example.com/ruat.pdf');
+    });
+
+    test('VehicleDocument.copyWith crea copia', () {
+      const original = VehicleDocument(
+        id: '1',
+        vehicleId: 'v-1',
+        type: VehicleDocumentType.soat,
+      );
+      final updated = original.copyWith(
+        type: VehicleDocumentType.inspection,
+        fileUrl: 'https://new-url.com/doc.pdf',
+      );
+      expect(updated.type, VehicleDocumentType.inspection);
+      expect(updated.fileUrl, 'https://new-url.com/doc.pdf');
+      expect(updated.id, '1');
+    });
+
+    test('VehicleDocument.isExpired detecta vencimiento', () {
+      final expired = VehicleDocument(
+        id: '1',
+        vehicleId: 'v-1',
+        type: VehicleDocumentType.soat,
+        expirationDate: DateTime.now().subtract(const Duration(days: 1)),
+      );
+      expect(expired.isExpired, isTrue);
+      expect(expired.isExpiringSoon, isFalse);
+    });
+
+    test('VehicleDocument.isExpiringSoon detecta próximo vencimiento', () {
+      final expiringSoon = VehicleDocument(
+        id: '1',
+        vehicleId: 'v-1',
+        type: VehicleDocumentType.soat,
+        expirationDate: DateTime.now().add(const Duration(days: 15)),
+      );
+      expect(expiringSoon.isExpired, isFalse);
+      expect(expiringSoon.isExpiringSoon, isTrue);
+    });
+
+    test('VehicleDocumentType.fromValue parsea valores', () {
+      expect(VehicleDocumentType.fromValue('soat'), VehicleDocumentType.soat);
+      expect(
+        VehicleDocumentType.fromValue('inspection'),
+        VehicleDocumentType.inspection,
+      );
+      expect(
+        VehicleDocumentType.fromValue('insurance'),
+        VehicleDocumentType.insurance,
+      );
+      expect(VehicleDocumentType.fromValue('ruat'), VehicleDocumentType.ruat);
+      expect(VehicleDocumentType.fromValue(null), VehicleDocumentType.soat);
+    });
+
+    test('VehicleDocumentType.label retorna texto en español', () {
+      expect(VehicleDocumentType.soat.label, 'SOAT');
+      expect(VehicleDocumentType.inspection.label, 'Inspección Técnica');
+      expect(VehicleDocumentType.insurance.label, 'Seguro');
+      expect(VehicleDocumentType.ruat.label, 'RUAT');
+    });
+  });
+
+  group('VehicleBloc', () {
+    test('estado inicial es correcto', () {
+      const state = VehicleState();
+      expect(state.status, VehicleStateStatus.initial);
+      expect(state.vehicles, isEmpty);
+      expect(state.errorMessage, isEmpty);
+      expect(state.isIdle, isTrue);
+    });
+
+    test('VehicleState.copyWith actualiza campos', () {
+      const state = VehicleState();
+      final updated = state.copyWith(
+        status: VehicleStateStatus.loaded,
+        vehicles: [
+          const Vehicle(id: '1', companyId: 'c-1', plateNumber: 'ABC-123'),
+        ],
+      );
+      expect(updated.status, VehicleStateStatus.loaded);
+      expect(updated.vehicles.length, 1);
+      expect(updated.errorMessage, isEmpty);
+    });
+
+    test('VehicleState.isIdle retorna false durante operaciones', () {
+      const loading = VehicleState(status: VehicleStateStatus.loading);
+      const creating = VehicleState(status: VehicleStateStatus.creating);
+      const updating = VehicleState(status: VehicleStateStatus.updating);
+      const deleting = VehicleState(status: VehicleStateStatus.deleting);
+
+      expect(loading.isIdle, isFalse);
+      expect(creating.isIdle, isFalse);
+      expect(updating.isIdle, isFalse);
+      expect(deleting.isIdle, isFalse);
+    });
+
+    test('VehicleEvent — CreateRequested tiene props correctos', () {
+      const event = VehicleCreateRequested(
+        companyId: 'c-1',
+        plateNumber: 'ABC-123',
+        brand: 'Toyota',
+        model: 'Hilux',
+        year: 2022,
+      );
+      expect(event.companyId, 'c-1');
+      expect(event.plateNumber, 'ABC-123');
+      expect(event.brand, 'Toyota');
+      expect(event.model, 'Hilux');
+      expect(event.year, 2022);
+    });
+
+    test('VehicleEvent — UpdateRequested tiene props correctos', () {
+      const event = VehicleUpdateRequested(
+        id: 'v-1',
+        plateNumber: 'DEF-456',
+        status: VehicleStatus.maintenance,
+      );
+      expect(event.id, 'v-1');
+      expect(event.plateNumber, 'DEF-456');
+      expect(event.status, VehicleStatus.maintenance);
+      expect(event.companyId, isNull);
+    });
+
+    test('VehicleEvent — DeleteRequested tiene props correctos', () {
+      const event = VehicleDeleteRequested('v-123');
+      expect(event.id, 'v-123');
+      expect(event.props, ['v-123']);
+    });
+
+    test('VehicleEvent — LoadRequested puede tener companyId', () {
+      const event1 = VehicleLoadRequested();
+      expect(event1.companyId, isNull);
+      expect(event1.props, [null]);
+
+      const event2 = VehicleLoadRequested(companyId: 'c-1');
+      expect(event2.companyId, 'c-1');
+      expect(event2.props, ['c-1']);
+    });
+  });
+
+  // ─── ThemeCubit ─────────────────────────────────────────────────────
+  group('ThemeCubit', () {
+    test('ThemeState por defecto usa ThemeMode.system', () {
+      const state = ThemeState();
+      expect(state.themeMode, ThemeMode.system);
+    });
+
+    test('ThemeState con ThemeMode.dark', () {
+      const state = ThemeState(themeMode: ThemeMode.dark);
+      expect(state.themeMode, ThemeMode.dark);
+    });
+
+    test('ThemeState con ThemeMode.light', () {
+      const state = ThemeState(themeMode: ThemeMode.light);
+      expect(state.themeMode, ThemeMode.light);
+    });
+
+    test('ThemeState props contiene themeMode', () {
+      const state = ThemeState(themeMode: ThemeMode.dark);
+      expect(state.props, [ThemeMode.dark]);
+    });
+
+    test('ThemeState igualdad por valor', () {
+      const state1 = ThemeState(themeMode: ThemeMode.light);
+      const state2 = ThemeState(themeMode: ThemeMode.light);
+      const state3 = ThemeState(themeMode: ThemeMode.dark);
+
+      expect(state1, equals(state2));
+      expect(state1, isNot(equals(state3)));
     });
   });
 }

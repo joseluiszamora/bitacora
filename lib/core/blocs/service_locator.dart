@@ -5,12 +5,16 @@ import '../data/repositories/client_company_repository.dart';
 import '../data/repositories/company_client_repository.dart';
 import '../data/repositories/company_repository.dart';
 import '../data/repositories/user_repository.dart';
+import '../data/repositories/vehicle_document_repository.dart';
+import '../data/repositories/vehicle_repository.dart';
 import 'auth/authentication_bloc.dart';
 import 'client_company/client_company_bloc.dart';
 import 'company/company_bloc.dart';
 import 'login/login_bloc.dart';
 import 'permission/permission_bloc.dart';
+import 'theme/theme_cubit.dart';
 import 'user_management/user_management_bloc.dart';
+import 'vehicle/vehicle_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -26,6 +30,10 @@ void serviceLocatorInit() {
   getIt.registerLazySingleton<CompanyClientRepository>(
     () => CompanyClientRepository(),
   );
+  getIt.registerLazySingleton<VehicleRepository>(() => VehicleRepository());
+  getIt.registerLazySingleton<VehicleDocumentRepository>(
+    () => VehicleDocumentRepository(),
+  );
 
   // === BLoCs globales (Singletons) ===
   getIt.registerSingleton<AuthenticationBloc>(
@@ -34,6 +42,8 @@ void serviceLocatorInit() {
   );
 
   getIt.registerSingleton<PermissionBloc>(PermissionBloc());
+
+  getIt.registerSingleton<ThemeCubit>(ThemeCubit());
 
   // === BLoCs de feature (Factory — se crean por pantalla) ===
   getIt.registerFactory<LoginBloc>(
@@ -58,6 +68,10 @@ void serviceLocatorInit() {
           getIt<AuthenticationBloc>().state.user.clientCompany.id,
       userRepository: getIt<UserRepository>(),
     ),
+  );
+
+  getIt.registerFactory<VehicleBloc>(
+    () => VehicleBloc(vehicleRepository: getIt<VehicleRepository>()),
   );
 
   // === Servicios (Lazy Singletons) ===

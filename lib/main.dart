@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/blocs/auth/authentication_bloc.dart';
 import 'core/blocs/service_locator.dart';
+import 'core/blocs/theme/theme_cubit.dart';
 import 'core/constants/config.dart';
 import 'core/themes/app_theme.dart';
 import 'views/auth/login_page.dart';
@@ -35,25 +36,32 @@ class BitacoraApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [BlocProvider.value(value: getIt<AuthenticationBloc>())],
-      child: MaterialApp(
-        title: 'BITACORA de Transporte',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: BlocBuilder<AuthenticationBloc, AuthenticationState>(
-          builder: (context, state) {
-            switch (state.status) {
-              case AuthenticationStatus.unknown:
-                return const SplashPage();
-              case AuthenticationStatus.authenticated:
-                return const NavigationPage();
-              case AuthenticationStatus.unauthenticated:
-                return const LoginPage();
-            }
-          },
-        ),
+      providers: [
+        BlocProvider.value(value: getIt<AuthenticationBloc>()),
+        BlocProvider.value(value: getIt<ThemeCubit>()),
+      ],
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, themeState) {
+          return MaterialApp(
+            title: 'BITACORA de Transporte',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeState.themeMode,
+            home: BlocBuilder<AuthenticationBloc, AuthenticationState>(
+              builder: (context, state) {
+                switch (state.status) {
+                  case AuthenticationStatus.unknown:
+                    return const SplashPage();
+                  case AuthenticationStatus.authenticated:
+                    return const NavigationPage();
+                  case AuthenticationStatus.unauthenticated:
+                    return const LoginPage();
+                }
+              },
+            ),
+          );
+        },
       ),
     );
   }
