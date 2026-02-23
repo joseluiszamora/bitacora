@@ -9,4 +9,5 @@ export 'theme/theme_cubit.dart';
 export 'trip/trip_bloc.dart';
 export 'user_management/user_management_bloc.dart';
 export 'vehicle/vehicle_bloc.dart';
+export 'client_location/client_location_bloc.dart';
 export 'vehicle_assignment/vehicle_assignment_bloc.dart';

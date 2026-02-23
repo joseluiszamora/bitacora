@@ -16,6 +16,10 @@ import 'package:bitacora/core/blocs/trip/trip_bloc.dart';
 import 'package:bitacora/core/data/models/trip.dart';
 import 'package:bitacora/core/blocs/vehicle_assignment/vehicle_assignment_bloc.dart';
 import 'package:bitacora/core/data/models/vehicle_assignment.dart';
+import 'package:bitacora/core/data/models/city.dart';
+import 'package:bitacora/core/data/models/client_location.dart';
+import 'package:bitacora/core/data/models/app_state.dart';
+import 'package:bitacora/core/blocs/client_location/client_location_bloc.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -1373,6 +1377,478 @@ void main() {
       );
       expect(event.endDate, isNotNull);
       expect(event.endDate!.month, 12);
+    });
+  });
+
+  // ── AppState Model ─────────────────────────────────────────────
+
+  group('AppState Model', () {
+    test('AppState.empty devuelve un estado vacío', () {
+      expect(AppState.empty.isEmpty, isTrue);
+      expect(AppState.empty.isNotEmpty, isFalse);
+    });
+
+    test('AppState con datos no está vacío', () {
+      const state = AppState(id: 1, name: 'Santa Cruz');
+      expect(state.isNotEmpty, isTrue);
+    });
+
+    test('AppState.fromJson parsea correctamente', () {
+      final json = {
+        'id': 3,
+        'name': 'Cochabamba',
+        'code': 'CB',
+        'country_code': 'BO',
+      };
+      final state = AppState.fromJson(json);
+      expect(state.id, 3);
+      expect(state.name, 'Cochabamba');
+      expect(state.code, 'CB');
+      expect(state.countryCode, 'BO');
+    });
+
+    test('AppState.displayName incluye código si existe', () {
+      const s1 = AppState(id: 1, name: 'Santa Cruz', code: 'SC');
+      expect(s1.displayName, 'Santa Cruz (SC)');
+
+      const s2 = AppState(id: 2, name: 'La Paz');
+      expect(s2.displayName, 'La Paz');
+    });
+
+    test('AppState.toJson serializa correctamente', () {
+      const state = AppState(
+        id: 1,
+        name: 'Oruro',
+        code: 'OR',
+        countryCode: 'BO',
+      );
+      final json = state.toJson();
+      expect(json['id'], 1);
+      expect(json['name'], 'Oruro');
+      expect(json['code'], 'OR');
+      expect(json['country_code'], 'BO');
+    });
+
+    test('AppState.copyWith copia y sobreescribe campos', () {
+      const state = AppState(id: 1, name: 'Potosí');
+      final copy = state.copyWith(name: 'Potosí Dept', code: 'PT');
+      expect(copy.id, 1);
+      expect(copy.name, 'Potosí Dept');
+      expect(copy.code, 'PT');
+    });
+
+    test('AppState.props contiene todos los campos', () {
+      const state = AppState(id: 1, name: 'Test');
+      expect(state.props.length, 4);
+    });
+  });
+
+  // ── City Model ────────────────────────────────────────────────
+
+  group('City Model', () {
+    test('City.empty devuelve una ciudad vacía', () {
+      expect(City.empty.isEmpty, isTrue);
+      expect(City.empty.isNotEmpty, isFalse);
+    });
+
+    test('City con datos no está vacía', () {
+      const city = City(id: 'c-1', name: 'Santa Cruz');
+      expect(city.isNotEmpty, isTrue);
+    });
+
+    test('City.fromJson parsea correctamente sin estado', () {
+      final json = {
+        'id': 'c-1',
+        'name': 'Cochabamba',
+        'state_id': 3,
+        'latitude': -17.39,
+        'longitude': -66.16,
+      };
+      final city = City.fromJson(json);
+      expect(city.id, 'c-1');
+      expect(city.name, 'Cochabamba');
+      expect(city.stateId, 3);
+      expect(city.latitude, -17.39);
+      expect(city.longitude, -66.16);
+      expect(city.state, isNull);
+    });
+
+    test('City.fromJson parsea join de estado', () {
+      final json = {
+        'id': 'c-2',
+        'name': 'La Paz',
+        'state_id': 2,
+        'state': {
+          'id': 2,
+          'name': 'La Paz',
+          'code': 'LP',
+          'country_code': 'BO',
+        },
+      };
+      final city = City.fromJson(json);
+      expect(city.state, isNotNull);
+      expect(city.state!.name, 'La Paz');
+      expect(city.state!.code, 'LP');
+      expect(city.stateName, 'La Paz');
+    });
+
+    test('City.displayName incluye estado si existe', () {
+      const city1 = City(id: 'c-1', name: 'Sucre', stateName: 'Chuquisaca');
+      expect(city1.displayName, 'Sucre, Chuquisaca');
+
+      const city2 = City(id: 'c-2', name: 'Oruro');
+      expect(city2.displayName, 'Oruro');
+    });
+
+    test('City.displayName prefiere nombre del join', () {
+      const city = City(
+        id: 'c-1',
+        name: 'Tarija',
+        stateName: 'Viejo',
+        state: AppState(id: 1, name: 'Tarija'),
+      );
+      expect(city.displayName, 'Tarija, Tarija');
+    });
+
+    test('City.toJson serializa correctamente', () {
+      const city = City(
+        id: 'c-1',
+        name: 'Tarija',
+        stateId: 5,
+        latitude: -21.53,
+        longitude: -64.73,
+      );
+      final json = city.toJson();
+      expect(json['id'], 'c-1');
+      expect(json['name'], 'Tarija');
+      expect(json['state_id'], 5);
+      expect(json['latitude'], -21.53);
+      expect(json['longitude'], -64.73);
+    });
+
+    test('City.copyWith copia y sobreescribe campos', () {
+      const city = City(id: 'c-1', name: 'Santa Cruz');
+      final copy = city.copyWith(name: 'Montero', stateName: 'Santa Cruz');
+      expect(copy.id, 'c-1');
+      expect(copy.name, 'Montero');
+      expect(copy.stateName, 'Santa Cruz');
+    });
+
+    test('City.props contiene todos los campos', () {
+      const city = City(id: 'c-1', name: 'Potosí');
+      expect(city.props.length, 7);
+    });
+  });
+
+  // ── ClientLocation Model ─────────────────────────────────────
+
+  group('ClientLocation Model', () {
+    test('ClientLocation.empty devuelve ubicación vacía', () {
+      expect(ClientLocation.empty.isEmpty, isTrue);
+      expect(ClientLocation.empty.isNotEmpty, isFalse);
+    });
+
+    test('ClientLocation con datos no está vacía', () {
+      const loc = ClientLocation(
+        id: 'loc-1',
+        clientCompanyId: 'cc-1',
+        name: 'Almacén Central',
+      );
+      expect(loc.isNotEmpty, isTrue);
+    });
+
+    test('ClientLocationType.fromValue parsea correctamente', () {
+      expect(
+        ClientLocationType.fromValue('WAREHOUSE'),
+        ClientLocationType.warehouse,
+      );
+      expect(
+        ClientLocationType.fromValue('DISTRIBUTION_CENTER'),
+        ClientLocationType.distributionCenter,
+      );
+      expect(ClientLocationType.fromValue('OFFICE'), ClientLocationType.office);
+      expect(ClientLocationType.fromValue('PLANT'), ClientLocationType.plant);
+      expect(ClientLocationType.fromValue(null), ClientLocationType.warehouse);
+      expect(
+        ClientLocationType.fromValue('UNKNOWN'),
+        ClientLocationType.warehouse,
+      );
+    });
+
+    test('ClientLocationType.label devuelve etiquetas en español', () {
+      expect(ClientLocationType.warehouse.label, 'Almacén');
+      expect(
+        ClientLocationType.distributionCenter.label,
+        'Centro de Distribución',
+      );
+      expect(ClientLocationType.office.label, 'Oficina');
+      expect(ClientLocationType.plant.label, 'Planta');
+    });
+
+    test('ClientLocationStatus.fromValue parsea correctamente', () {
+      expect(
+        ClientLocationStatus.fromValue('ACTIVE'),
+        ClientLocationStatus.active,
+      );
+      expect(
+        ClientLocationStatus.fromValue('INACTIVE'),
+        ClientLocationStatus.inactive,
+      );
+      expect(ClientLocationStatus.fromValue(null), ClientLocationStatus.active);
+    });
+
+    test('ClientLocationStatus.label devuelve etiquetas en español', () {
+      expect(ClientLocationStatus.active.label, 'Activa');
+      expect(ClientLocationStatus.inactive.label, 'Inactiva');
+    });
+
+    test('ClientLocation.fromJson parsea correctamente', () {
+      final json = {
+        'id': 'loc-1',
+        'client_company_id': 'cc-1',
+        'name': 'Planta Norte',
+        'type': 'PLANT',
+        'address': 'Av. Industrial 123',
+        'city_id': 'c-1',
+        'country': 'Bolivia',
+        'latitude': -17.783,
+        'longitude': -63.182,
+        'contact_name': 'Juan Pérez',
+        'contact_phone': '77712345',
+        'status': 'ACTIVE',
+        'created_at': '2025-06-01T00:00:00Z',
+      };
+      final loc = ClientLocation.fromJson(json);
+      expect(loc.id, 'loc-1');
+      expect(loc.clientCompanyId, 'cc-1');
+      expect(loc.name, 'Planta Norte');
+      expect(loc.type, ClientLocationType.plant);
+      expect(loc.address, 'Av. Industrial 123');
+      expect(loc.cityId, 'c-1');
+      expect(loc.country, 'Bolivia');
+      expect(loc.latitude, -17.783);
+      expect(loc.longitude, -63.182);
+      expect(loc.contactName, 'Juan Pérez');
+      expect(loc.contactPhone, '77712345');
+      expect(loc.status, ClientLocationStatus.active);
+      expect(loc.createdAt, isNotNull);
+    });
+
+    test('ClientLocation.fromJson parsea joins de company y city', () {
+      final json = {
+        'id': 'loc-2',
+        'client_company_id': 'cc-2',
+        'name': 'Oficina Central',
+        'type': 'OFFICE',
+        'status': 'INACTIVE',
+        'client_company': {'id': 'cc-2', 'name': 'Empresa ABC'},
+        'city': {
+          'id': 'c-3',
+          'name': 'Cochabamba',
+          'state_id': 3,
+          'state': {
+            'id': 3,
+            'name': 'Cochabamba',
+            'code': 'CB',
+            'country_code': 'BO',
+          },
+        },
+      };
+      final loc = ClientLocation.fromJson(json);
+      expect(loc.clientCompany, isNotNull);
+      expect(loc.clientCompany!.name, 'Empresa ABC');
+      expect(loc.city, isNotNull);
+      expect(loc.city!.name, 'Cochabamba');
+      expect(loc.city!.stateName, 'Cochabamba');
+      expect(loc.city!.state, isNotNull);
+      expect(loc.city!.state!.code, 'CB');
+      expect(loc.status, ClientLocationStatus.inactive);
+    });
+
+    test('ClientLocation.toJson no incluye id', () {
+      const loc = ClientLocation(
+        id: 'loc-1',
+        clientCompanyId: 'cc-1',
+        name: 'Almacén Sur',
+        type: ClientLocationType.warehouse,
+      );
+      final json = loc.toJson();
+      expect(json.containsKey('id'), isFalse);
+      expect(json['client_company_id'], 'cc-1');
+      expect(json['name'], 'Almacén Sur');
+      expect(json['type'], 'WAREHOUSE');
+      expect(json['status'], 'ACTIVE');
+    });
+
+    test('ClientLocation.displayName genera nombre correcto', () {
+      const loc = ClientLocation(
+        id: 'loc-1',
+        clientCompanyId: 'cc-1',
+        name: 'Almacén Central',
+        type: ClientLocationType.warehouse,
+      );
+      expect(loc.displayName, 'Almacén Central (Almacén)');
+
+      const loc2 = ClientLocation(
+        id: 'loc-2',
+        clientCompanyId: 'cc-1',
+        name: 'CD Principal',
+        type: ClientLocationType.distributionCenter,
+      );
+      expect(loc2.displayName, 'CD Principal (Centro de Distribución)');
+    });
+
+    test('ClientLocation.copyWith copia y sobreescribe campos', () {
+      const loc = ClientLocation(
+        id: 'loc-1',
+        clientCompanyId: 'cc-1',
+        name: 'Original',
+        type: ClientLocationType.warehouse,
+      );
+      final copy = loc.copyWith(
+        name: 'Modificado',
+        type: ClientLocationType.office,
+        status: ClientLocationStatus.inactive,
+        latitude: -17.5,
+      );
+      expect(copy.id, 'loc-1');
+      expect(copy.name, 'Modificado');
+      expect(copy.type, ClientLocationType.office);
+      expect(copy.status, ClientLocationStatus.inactive);
+      expect(copy.latitude, -17.5);
+      expect(copy.clientCompanyId, 'cc-1');
+    });
+
+    test('ClientLocation.props contiene todos los campos', () {
+      expect(ClientLocation.empty.props.length, 15);
+    });
+
+    test('ClientLocation valores por defecto', () {
+      const loc = ClientLocation(
+        id: 'loc-1',
+        clientCompanyId: 'cc-1',
+        name: 'Test',
+      );
+      expect(loc.type, ClientLocationType.warehouse);
+      expect(loc.status, ClientLocationStatus.active);
+      expect(loc.country, 'Bolivia');
+      expect(loc.address, isNull);
+      expect(loc.cityId, isNull);
+      expect(loc.latitude, isNull);
+      expect(loc.longitude, isNull);
+      expect(loc.contactName, isNull);
+      expect(loc.contactPhone, isNull);
+      expect(loc.clientCompany, isNull);
+      expect(loc.city, isNull);
+    });
+  });
+
+  // ── ClientLocation Bloc ──────────────────────────────────────
+
+  group('ClientLocation Bloc', () {
+    test('ClientLocationState initial tiene valores por defecto', () {
+      const state = ClientLocationState();
+      expect(state.status, ClientLocationBlocStatus.initial);
+      expect(state.locations, isEmpty);
+      expect(state.errorMessage, '');
+      expect(state.isIdle, isTrue);
+    });
+
+    test('ClientLocationState isIdle es false cuando loading', () {
+      const state = ClientLocationState(
+        status: ClientLocationBlocStatus.loading,
+      );
+      expect(state.isIdle, isFalse);
+    });
+
+    test('ClientLocationState isIdle es false cuando creating', () {
+      const state = ClientLocationState(
+        status: ClientLocationBlocStatus.creating,
+      );
+      expect(state.isIdle, isFalse);
+    });
+
+    test('ClientLocationState isIdle es false cuando updating', () {
+      const state = ClientLocationState(
+        status: ClientLocationBlocStatus.updating,
+      );
+      expect(state.isIdle, isFalse);
+    });
+
+    test('ClientLocationState isIdle es false cuando deleting', () {
+      const state = ClientLocationState(
+        status: ClientLocationBlocStatus.deleting,
+      );
+      expect(state.isIdle, isFalse);
+    });
+
+    test('ClientLocationState copyWith sobreescribe campos', () {
+      final locations = [
+        const ClientLocation(
+          id: 'loc-1',
+          clientCompanyId: 'cc-1',
+          name: 'Test',
+        ),
+      ];
+      const state = ClientLocationState();
+      final updated = state.copyWith(
+        status: ClientLocationBlocStatus.loaded,
+        locations: locations,
+      );
+      expect(updated.locations.length, 1);
+      expect(updated.locations.first.id, 'loc-1');
+    });
+
+    test('ClientLocationState props contiene todos los campos', () {
+      const state = ClientLocationState();
+      expect(state.props.length, 3);
+    });
+
+    test('ClientLocationEvent — LoadRequested props', () {
+      const event1 = ClientLocationLoadRequested();
+      expect(event1.clientCompanyId, isNull);
+
+      const event2 = ClientLocationLoadRequested(clientCompanyId: 'cc-1');
+      expect(event2.clientCompanyId, 'cc-1');
+      expect(event2.props, ['cc-1']);
+    });
+
+    test('ClientLocationEvent — CreateRequested props', () {
+      const event = ClientLocationCreateRequested(
+        clientCompanyId: 'cc-1',
+        name: 'Almacén Norte',
+        type: ClientLocationType.warehouse,
+        address: 'Calle 1',
+        cityId: 'c-1',
+        latitude: -17.5,
+        longitude: -63.2,
+        contactName: 'Pedro',
+        contactPhone: '77700000',
+      );
+      expect(event.clientCompanyId, 'cc-1');
+      expect(event.name, 'Almacén Norte');
+      expect(event.type, ClientLocationType.warehouse);
+      expect(event.address, 'Calle 1');
+      expect(event.country, 'Bolivia');
+    });
+
+    test('ClientLocationEvent — UpdateRequested props', () {
+      const event = ClientLocationUpdateRequested(
+        id: 'loc-1',
+        name: 'Nuevo Nombre',
+        status: ClientLocationStatus.inactive,
+      );
+      expect(event.id, 'loc-1');
+      expect(event.name, 'Nuevo Nombre');
+      expect(event.status, ClientLocationStatus.inactive);
+      expect(event.type, isNull);
+      expect(event.clientCompanyId, isNull);
+    });
+
+    test('ClientLocationEvent — DeleteRequested props', () {
+      const event = ClientLocationDeleteRequested('loc-123');
+      expect(event.id, 'loc-123');
+      expect(event.props, ['loc-123']);
     });
   });
 }

@@ -1,9 +1,12 @@
 import 'package:get_it/get_it.dart';
 
 import '../data/repositories/auth_repository.dart';
+import '../data/repositories/city_repository.dart';
 import '../data/repositories/client_company_repository.dart';
+import '../data/repositories/client_location_repository.dart';
 import '../data/repositories/company_client_repository.dart';
 import '../data/repositories/company_repository.dart';
+import '../data/repositories/state_repository.dart';
 import '../data/repositories/user_repository.dart';
 import '../data/repositories/trip_repository.dart';
 import '../data/repositories/vehicle_assignment_repository.dart';
@@ -11,6 +14,7 @@ import '../data/repositories/vehicle_document_repository.dart';
 import '../data/repositories/vehicle_repository.dart';
 import 'auth/authentication_bloc.dart';
 import 'client_company/client_company_bloc.dart';
+import 'client_location/client_location_bloc.dart';
 import 'company/company_bloc.dart';
 import 'login/login_bloc.dart';
 import 'permission/permission_bloc.dart';
@@ -41,6 +45,11 @@ void serviceLocatorInit() {
   getIt.registerLazySingleton<TripRepository>(() => TripRepository());
   getIt.registerLazySingleton<VehicleAssignmentRepository>(
     () => VehicleAssignmentRepository(),
+  );
+  getIt.registerLazySingleton<CityRepository>(() => CityRepository());
+  getIt.registerLazySingleton<StateRepository>(() => StateRepository());
+  getIt.registerLazySingleton<ClientLocationRepository>(
+    () => ClientLocationRepository(),
   );
 
   // === BLoCs globales (Singletons) ===
@@ -87,6 +96,8 @@ void serviceLocatorInit() {
   );
 
   getIt.registerFactory<VehicleAssignmentBloc>(() => VehicleAssignmentBloc());
+
+  getIt.registerFactory<ClientLocationBloc>(() => ClientLocationBloc());
 
   // === Servicios (Lazy Singletons) ===
   // getIt.registerLazySingleton<NavigationService>(() => NavigationService());
