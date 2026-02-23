@@ -14,6 +14,8 @@ import 'package:bitacora/core/blocs/vehicle/vehicle_bloc.dart';
 import 'package:bitacora/core/blocs/theme/theme_cubit.dart';
 import 'package:bitacora/core/blocs/trip/trip_bloc.dart';
 import 'package:bitacora/core/data/models/trip.dart';
+import 'package:bitacora/core/blocs/vehicle_assignment/vehicle_assignment_bloc.dart';
+import 'package:bitacora/core/data/models/vehicle_assignment.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -1042,6 +1044,335 @@ void main() {
       const event2 = TripLoadRequested(companyId: 'c-1');
       expect(event2.companyId, 'c-1');
       expect(event2.props, ['c-1']);
+    });
+  });
+
+  // ============================================================
+  // VehicleAssignment Model
+  // ============================================================
+  group('VehicleAssignment Model', () {
+    test('VehicleAssignment.empty devuelve una asignación vacía', () {
+      expect(VehicleAssignment.empty.isEmpty, isTrue);
+    });
+
+    test('VehicleAssignment con datos no está vacía', () {
+      final assignment = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+      );
+      expect(assignment.isNotEmpty, isTrue);
+    });
+
+    test('VehicleAssignment.fromJson parsea correctamente', () {
+      final json = {
+        'id': 'va-1',
+        'vehicle_id': 'v-1',
+        'driver_id': 'd-1',
+        'assigned_by_user_id': 'u-admin',
+        'start_date': '2025-01-15',
+        'end_date': null,
+        'is_active': true,
+        'created_at': '2025-01-15T10:00:00Z',
+      };
+
+      final assignment = VehicleAssignment.fromJson(json);
+      expect(assignment.id, 'va-1');
+      expect(assignment.vehicleId, 'v-1');
+      expect(assignment.driverId, 'd-1');
+      expect(assignment.assignedByUserId, 'u-admin');
+      expect(assignment.startDate.year, 2025);
+      expect(assignment.startDate.month, 1);
+      expect(assignment.startDate.day, 15);
+      expect(assignment.endDate, isNull);
+      expect(assignment.isActive, isTrue);
+      expect(assignment.createdAt, isNotNull);
+    });
+
+    test('VehicleAssignment.fromJson con end_date', () {
+      final json = {
+        'id': 'va-2',
+        'vehicle_id': 'v-2',
+        'driver_id': 'd-2',
+        'start_date': '2025-01-01',
+        'end_date': '2025-06-30',
+        'is_active': false,
+      };
+
+      final assignment = VehicleAssignment.fromJson(json);
+      expect(assignment.endDate, isNotNull);
+      expect(assignment.endDate!.month, 6);
+      expect(assignment.isActive, isFalse);
+    });
+
+    test('VehicleAssignment.fromJson con vehicle join', () {
+      final json = {
+        'id': 'va-3',
+        'vehicle_id': 'v-3',
+        'driver_id': 'd-3',
+        'start_date': '2025-03-01',
+        'is_active': true,
+        'vehicle': {
+          'id': 'v-3',
+          'company_id': 'c-1',
+          'plate_number': 'ABC-123',
+          'brand': 'Toyota',
+          'model': 'Hilux',
+          'year': 2023,
+        },
+      };
+
+      final assignment = VehicleAssignment.fromJson(json);
+      expect(assignment.vehicle, isNotNull);
+      expect(assignment.vehicle!.plateNumber, 'ABC-123');
+      expect(assignment.vehicle!.brand, 'Toyota');
+    });
+
+    test('VehicleAssignment.fromJson con driver join', () {
+      final json = {
+        'id': 'va-4',
+        'vehicle_id': 'v-4',
+        'driver_id': 'd-4',
+        'start_date': '2025-02-01',
+        'is_active': true,
+        'driver': {
+          'id': 'd-4',
+          'full_name': 'Carlos Perez',
+          'email': 'carlos@test.com',
+          'role': 'driver',
+        },
+      };
+
+      final assignment = VehicleAssignment.fromJson(json);
+      expect(assignment.driver, isNotNull);
+      expect(assignment.driver!.name, 'Carlos Perez');
+      expect(assignment.driver!.email, 'carlos@test.com');
+    });
+
+    test('VehicleAssignment.toJson serializa correctamente', () {
+      final assignment = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        assignedByUserId: 'u-admin',
+        startDate: DateTime(2025, 3, 15),
+        isActive: true,
+      );
+
+      final json = assignment.toJson();
+      expect(json['vehicle_id'], 'v-1');
+      expect(json['driver_id'], 'd-1');
+      expect(json['assigned_by_user_id'], 'u-admin');
+      expect(json['is_active'], true);
+      expect(json.containsKey('id'), isFalse);
+    });
+
+    test('VehicleAssignment.toJson con endDate', () {
+      final assignment = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+        endDate: DateTime(2025, 12, 31),
+        isActive: false,
+      );
+
+      final json = assignment.toJson();
+      expect(json['end_date'], isNotNull);
+      expect(json['is_active'], false);
+    });
+
+    test('VehicleAssignment.copyWith funciona correctamente', () {
+      final original = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+        isActive: true,
+      );
+
+      final updated = original.copyWith(
+        driverId: 'd-2',
+        isActive: false,
+        endDate: DateTime(2025, 6, 1),
+      );
+
+      expect(updated.id, 'va-1');
+      expect(updated.vehicleId, 'v-1');
+      expect(updated.driverId, 'd-2');
+      expect(updated.isActive, false);
+      expect(updated.endDate, isNotNull);
+    });
+
+    test('VehicleAssignment.displayName muestra nombre correcto', () {
+      final assignment = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+      );
+
+      // Sin joins: usa IDs
+      expect(assignment.displayName, 'd-1 → v-1');
+    });
+
+    test('VehicleAssignment.displayName con joins muestra nombres', () {
+      final assignment = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+        vehicle: const Vehicle(
+          id: 'v-1',
+          companyId: 'c-1',
+          plateNumber: 'XYZ-789',
+          brand: 'Ford',
+          model: 'Ranger',
+        ),
+        driver: const User(
+          id: 'd-1',
+          name: 'Juan Lopez',
+          email: 'juan@test.com',
+        ),
+      );
+
+      expect(assignment.displayName, 'Juan Lopez → Ford Ranger');
+    });
+
+    test('VehicleAssignment props contiene todos los campos', () {
+      final assignment = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+      );
+      expect(assignment.props.length, 11);
+    });
+
+    test('VehicleAssignment igualdad por Equatable', () {
+      final a = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+      );
+      final b = VehicleAssignment(
+        id: 'va-1',
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+      );
+      expect(a, equals(b));
+    });
+  });
+
+  // ============================================================
+  // VehicleAssignment BLoC
+  // ============================================================
+  group('VehicleAssignment BLoC', () {
+    test('VehicleAssignmentState initial es correcto', () {
+      const state = VehicleAssignmentState();
+      expect(state.status, VehicleAssignmentStatus.initial);
+      expect(state.assignments, isEmpty);
+      expect(state.errorMessage, isEmpty);
+    });
+
+    test('VehicleAssignmentState copyWith funciona', () {
+      const state = VehicleAssignmentState();
+      final updated = state.copyWith(
+        status: VehicleAssignmentStatus.loading,
+        errorMessage: 'test',
+      );
+      expect(updated.status, VehicleAssignmentStatus.loading);
+      expect(updated.errorMessage, 'test');
+      expect(updated.assignments, isEmpty);
+    });
+
+    test('VehicleAssignmentState copyWith con asignaciones', () {
+      final assignments = [
+        VehicleAssignment(
+          id: 'va-1',
+          vehicleId: 'v-1',
+          driverId: 'd-1',
+          startDate: DateTime(2025, 1, 1),
+        ),
+      ];
+      const state = VehicleAssignmentState();
+      final updated = state.copyWith(
+        status: VehicleAssignmentStatus.loaded,
+        assignments: assignments,
+      );
+      expect(updated.assignments.length, 1);
+      expect(updated.assignments.first.id, 'va-1');
+    });
+
+    test('VehicleAssignmentState props contiene todos los campos', () {
+      const state = VehicleAssignmentState();
+      expect(state.props.length, 3);
+    });
+
+    test('VehicleAssignmentEvent — CreateRequested props', () {
+      final event = VehicleAssignmentCreateRequested(
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        assignedByUserId: 'u-1',
+        startDate: DateTime(2025, 3, 1),
+      );
+      expect(event.vehicleId, 'v-1');
+      expect(event.driverId, 'd-1');
+      expect(event.assignedByUserId, 'u-1');
+      expect(event.endDate, isNull);
+    });
+
+    test('VehicleAssignmentEvent — UpdateRequested props', () {
+      const event = VehicleAssignmentUpdateRequested(
+        id: 'va-1',
+        isActive: false,
+      );
+      expect(event.id, 'va-1');
+      expect(event.isActive, false);
+      expect(event.vehicleId, isNull);
+    });
+
+    test('VehicleAssignmentEvent — EndRequested props', () {
+      const event = VehicleAssignmentEndRequested('va-123');
+      expect(event.id, 'va-123');
+      expect(event.props, ['va-123']);
+    });
+
+    test('VehicleAssignmentEvent — DeleteRequested props', () {
+      const event = VehicleAssignmentDeleteRequested('va-456');
+      expect(event.id, 'va-456');
+      expect(event.props, ['va-456']);
+    });
+
+    test('VehicleAssignmentEvent — LoadRequested filtros', () {
+      const event1 = VehicleAssignmentLoadRequested();
+      expect(event1.vehicleId, isNull);
+      expect(event1.driverId, isNull);
+      expect(event1.companyId, isNull);
+
+      const event2 = VehicleAssignmentLoadRequested(vehicleId: 'v-1');
+      expect(event2.vehicleId, 'v-1');
+
+      const event3 = VehicleAssignmentLoadRequested(
+        driverId: 'd-1',
+        companyId: 'c-1',
+      );
+      expect(event3.driverId, 'd-1');
+      expect(event3.companyId, 'c-1');
+    });
+
+    test('VehicleAssignmentEvent — CreateRequested con endDate', () {
+      final event = VehicleAssignmentCreateRequested(
+        vehicleId: 'v-1',
+        driverId: 'd-1',
+        startDate: DateTime(2025, 1, 1),
+        endDate: DateTime(2025, 12, 31),
+      );
+      expect(event.endDate, isNotNull);
+      expect(event.endDate!.month, 12);
     });
   });
 }

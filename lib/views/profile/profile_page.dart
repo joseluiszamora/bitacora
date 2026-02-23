@@ -10,6 +10,7 @@ import '../companies/companies_page.dart';
 import '../settings/settings_page.dart';
 import '../trips/trips_page.dart';
 import '../users/users_page.dart';
+import '../vehicle_assignments/vehicle_assignments_page.dart';
 import '../vehicles/vehicles_page.dart';
 
 /// Pantalla de perfil de usuario.
@@ -270,6 +271,18 @@ class ProfilePage extends StatelessWidget {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => const TripsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _buildProfileOption(
+                      icon: Icons.link,
+                      title: 'Asignaciones Vehículo-Conductor',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const VehicleAssignmentsPage(),
                           ),
                         );
                       },
