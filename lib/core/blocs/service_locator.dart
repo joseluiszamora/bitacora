@@ -5,6 +5,7 @@ import '../data/repositories/client_company_repository.dart';
 import '../data/repositories/company_client_repository.dart';
 import '../data/repositories/company_repository.dart';
 import '../data/repositories/user_repository.dart';
+import '../data/repositories/trip_repository.dart';
 import '../data/repositories/vehicle_document_repository.dart';
 import '../data/repositories/vehicle_repository.dart';
 import 'auth/authentication_bloc.dart';
@@ -13,6 +14,7 @@ import 'company/company_bloc.dart';
 import 'login/login_bloc.dart';
 import 'permission/permission_bloc.dart';
 import 'theme/theme_cubit.dart';
+import 'trip/trip_bloc.dart';
 import 'user_management/user_management_bloc.dart';
 import 'vehicle/vehicle_bloc.dart';
 
@@ -34,6 +36,7 @@ void serviceLocatorInit() {
   getIt.registerLazySingleton<VehicleDocumentRepository>(
     () => VehicleDocumentRepository(),
   );
+  getIt.registerLazySingleton<TripRepository>(() => TripRepository());
 
   // === BLoCs globales (Singletons) ===
   getIt.registerSingleton<AuthenticationBloc>(
@@ -72,6 +75,10 @@ void serviceLocatorInit() {
 
   getIt.registerFactory<VehicleBloc>(
     () => VehicleBloc(vehicleRepository: getIt<VehicleRepository>()),
+  );
+
+  getIt.registerFactory<TripBloc>(
+    () => TripBloc(tripRepository: getIt<TripRepository>()),
   );
 
   // === Servicios (Lazy Singletons) ===

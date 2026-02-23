@@ -6,5 +6,6 @@ export 'login/login_bloc.dart';
 export 'permission/permission_bloc.dart';
 export 'service_locator.dart';
 export 'theme/theme_cubit.dart';
+export 'trip/trip_bloc.dart';
 export 'user_management/user_management_bloc.dart';
 export 'vehicle/vehicle_bloc.dart';

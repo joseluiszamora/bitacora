@@ -8,6 +8,7 @@ import '../../core/data/models/user_role.dart';
 import '../client_companies/client_companies_page.dart';
 import '../companies/companies_page.dart';
 import '../settings/settings_page.dart';
+import '../trips/trips_page.dart';
 import '../users/users_page.dart';
 import '../vehicles/vehicles_page.dart';
 
@@ -257,6 +258,18 @@ class ProfilePage extends StatelessWidget {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => const VehiclesPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _buildProfileOption(
+                      icon: Icons.route,
+                      title: 'Administrar Viajes',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const TripsPage(),
                           ),
                         );
                       },

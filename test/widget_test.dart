@@ -12,6 +12,8 @@ import 'package:bitacora/core/blocs/client_company/client_company_bloc.dart';
 import 'package:bitacora/core/blocs/user_management/user_management_bloc.dart';
 import 'package:bitacora/core/blocs/vehicle/vehicle_bloc.dart';
 import 'package:bitacora/core/blocs/theme/theme_cubit.dart';
+import 'package:bitacora/core/blocs/trip/trip_bloc.dart';
+import 'package:bitacora/core/data/models/trip.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -850,6 +852,196 @@ void main() {
 
       expect(state1, equals(state2));
       expect(state1, isNot(equals(state3)));
+    });
+  });
+
+  // ─── Trip Model ──────────────────────────────────────────────────────
+  group('Trip Model', () {
+    test('Trip.empty está vacío', () {
+      expect(Trip.empty.isEmpty, isTrue);
+    });
+
+    test('Trip con datos no está vacío', () {
+      const trip = Trip(
+        id: '1',
+        companyId: 'c1',
+        clientCompanyId: 'cc1',
+        vehicleId: 'v1',
+        origin: 'La Paz',
+        destination: 'Oruro',
+      );
+      expect(trip.isNotEmpty, isTrue);
+    });
+
+    test('Trip.fromJson parsea correctamente', () {
+      final json = {
+        'id': 'trip-1',
+        'company_id': 'comp-1',
+        'client_company_id': 'cc-1',
+        'vehicle_id': 'v-1',
+        'assigned_by_user_id': 'admin-1',
+        'origin': 'Cochabamba',
+        'destination': 'Santa Cruz',
+        'status': 'in_progress',
+        'price': 1500.50,
+      };
+      final trip = Trip.fromJson(json);
+      expect(trip.id, 'trip-1');
+      expect(trip.companyId, 'comp-1');
+      expect(trip.clientCompanyId, 'cc-1');
+      expect(trip.vehicleId, 'v-1');
+      expect(trip.assignedByUserId, 'admin-1');
+      expect(trip.origin, 'Cochabamba');
+      expect(trip.destination, 'Santa Cruz');
+      expect(trip.status, TripStatus.inProgress);
+      expect(trip.price, 1500.50);
+    });
+
+    test('Trip.toJson serializa correctamente', () {
+      const trip = Trip(
+        id: 't-1',
+        companyId: 'c-1',
+        clientCompanyId: 'cc-1',
+        vehicleId: 'v-1',
+        origin: 'Sucre',
+        destination: 'Potosí',
+        status: TripStatus.pending,
+        price: 800.00,
+      );
+      final json = trip.toJson();
+      expect(json['company_id'], 'c-1');
+      expect(json['client_company_id'], 'cc-1');
+      expect(json['vehicle_id'], 'v-1');
+      expect(json['origin'], 'Sucre');
+      expect(json['destination'], 'Potosí');
+      expect(json['status'], 'pending');
+      expect(json['price'], 800.00);
+    });
+
+    test('Trip.copyWith crea copia con campos actualizados', () {
+      const trip = Trip(
+        id: 't-1',
+        companyId: 'c-1',
+        clientCompanyId: 'cc-1',
+        vehicleId: 'v-1',
+        origin: 'La Paz',
+        destination: 'Oruro',
+        status: TripStatus.pending,
+      );
+      final updated = trip.copyWith(
+        status: TripStatus.completed,
+        price: 500.0,
+        destination: 'Cochabamba',
+      );
+      expect(updated.id, 't-1');
+      expect(updated.origin, 'La Paz');
+      expect(updated.destination, 'Cochabamba');
+      expect(updated.status, TripStatus.completed);
+      expect(updated.price, 500.0);
+    });
+
+    test('Trip.displayName muestra ruta', () {
+      const trip = Trip(
+        id: '1',
+        companyId: 'c1',
+        clientCompanyId: 'cc1',
+        vehicleId: 'v1',
+        origin: 'La Paz',
+        destination: 'Oruro',
+      );
+      expect(trip.displayName, 'La Paz → Oruro');
+    });
+
+    test('TripStatus.fromValue parsea valores válidos', () {
+      expect(TripStatus.fromValue('pending'), TripStatus.pending);
+      expect(TripStatus.fromValue('in_progress'), TripStatus.inProgress);
+      expect(TripStatus.fromValue('completed'), TripStatus.completed);
+      expect(TripStatus.fromValue('cancelled'), TripStatus.cancelled);
+      expect(TripStatus.fromValue('unknown'), TripStatus.pending);
+      expect(TripStatus.fromValue(null), TripStatus.pending);
+    });
+
+    test('TripStatus.label retorna texto en español', () {
+      expect(TripStatus.pending.label, 'Pendiente');
+      expect(TripStatus.inProgress.label, 'En Curso');
+      expect(TripStatus.completed.label, 'Completado');
+      expect(TripStatus.cancelled.label, 'Cancelado');
+    });
+  });
+
+  // ─── TripBloc ────────────────────────────────────────────────────────
+  group('TripBloc', () {
+    test('estado inicial es correcto', () {
+      const state = TripState();
+      expect(state.status, TripStateStatus.initial);
+      expect(state.trips, isEmpty);
+      expect(state.errorMessage, isEmpty);
+    });
+
+    test('TripState.copyWith actualiza campos', () {
+      const state = TripState();
+      final updated = state.copyWith(
+        status: TripStateStatus.loaded,
+        trips: [Trip.empty],
+        errorMessage: 'error test',
+      );
+      expect(updated.status, TripStateStatus.loaded);
+      expect(updated.trips.length, 1);
+      expect(updated.errorMessage, 'error test');
+    });
+
+    test('TripState.isIdle retorna false durante operaciones', () {
+      expect(const TripState(status: TripStateStatus.loading).isIdle, isFalse);
+      expect(const TripState(status: TripStateStatus.creating).isIdle, isFalse);
+      expect(const TripState(status: TripStateStatus.updating).isIdle, isFalse);
+      expect(const TripState(status: TripStateStatus.deleting).isIdle, isFalse);
+      expect(const TripState(status: TripStateStatus.loaded).isIdle, isTrue);
+      expect(const TripState(status: TripStateStatus.success).isIdle, isTrue);
+    });
+
+    test('TripEvent — CreateRequested tiene props correctos', () {
+      const event = TripCreateRequested(
+        companyId: 'c-1',
+        clientCompanyId: 'cc-1',
+        vehicleId: 'v-1',
+        origin: 'La Paz',
+        destination: 'Oruro',
+        price: 500.0,
+      );
+      expect(event.companyId, 'c-1');
+      expect(event.clientCompanyId, 'cc-1');
+      expect(event.vehicleId, 'v-1');
+      expect(event.origin, 'La Paz');
+      expect(event.destination, 'Oruro');
+      expect(event.price, 500.0);
+    });
+
+    test('TripEvent — UpdateRequested tiene props correctos', () {
+      const event = TripUpdateRequested(
+        id: 't-1',
+        status: TripStatus.completed,
+        origin: 'Cochabamba',
+      );
+      expect(event.id, 't-1');
+      expect(event.status, TripStatus.completed);
+      expect(event.origin, 'Cochabamba');
+      expect(event.vehicleId, isNull);
+    });
+
+    test('TripEvent — DeleteRequested tiene props correctos', () {
+      const event = TripDeleteRequested('t-123');
+      expect(event.id, 't-123');
+      expect(event.props, ['t-123']);
+    });
+
+    test('TripEvent — LoadRequested puede tener companyId', () {
+      const event1 = TripLoadRequested();
+      expect(event1.companyId, isNull);
+      expect(event1.props, [null]);
+
+      const event2 = TripLoadRequested(companyId: 'c-1');
+      expect(event2.companyId, 'c-1');
+      expect(event2.props, ['c-1']);
     });
   });
 }
