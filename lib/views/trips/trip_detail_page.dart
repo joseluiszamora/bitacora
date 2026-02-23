@@ -70,7 +70,7 @@ class TripDetailPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        trip.origin,
+                        trip.originLocation?.name ?? trip.originLocationId,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -85,7 +85,8 @@ class TripDetailPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        trip.destination,
+                        trip.destinationLocation?.name ??
+                            trip.destinationLocationId,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

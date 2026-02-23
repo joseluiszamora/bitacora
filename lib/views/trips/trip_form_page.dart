@@ -7,11 +7,13 @@ import '../../../core/blocs/trip/trip_bloc.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_defaults.dart';
 import '../../../core/data/models/client_company.dart';
+import '../../../core/data/models/client_location.dart';
 import '../../../core/data/models/company.dart';
 import '../../../core/data/models/trip.dart';
 import '../../../core/data/models/user_role.dart';
 import '../../../core/data/models/vehicle.dart';
 import '../../../core/data/repositories/client_company_repository.dart';
+import '../../../core/data/repositories/client_location_repository.dart';
 import '../../../core/data/repositories/vehicle_repository.dart';
 
 /// Formulario para crear o editar un viaje.
@@ -30,13 +32,13 @@ class TripFormPage extends StatefulWidget {
 class _TripFormPageState extends State<TripFormPage> {
   final _formKey = GlobalKey<FormState>();
 
-  late final TextEditingController _originController;
-  late final TextEditingController _destinationController;
   late final TextEditingController _priceController;
 
   late String _companyId;
   String? _clientCompanyId;
   String? _vehicleId;
+  String? _originLocationId;
+  String? _destinationLocationId;
   late TripStatus _status;
   DateTime? _departureTime;
   DateTime? _arrivalTime;
@@ -45,13 +47,12 @@ class _TripFormPageState extends State<TripFormPage> {
   List<Company> _companies = [];
   List<ClientCompany> _clientCompanies = [];
   List<Vehicle> _vehicles = [];
+  List<ClientLocation> _clientLocations = [];
 
   @override
   void initState() {
     super.initState();
     final t = widget.trip;
-    _originController = TextEditingController(text: t?.origin ?? '');
-    _destinationController = TextEditingController(text: t?.destination ?? '');
     _priceController = TextEditingController(
       text: t?.price?.toStringAsFixed(2) ?? '',
     );
@@ -65,6 +66,8 @@ class _TripFormPageState extends State<TripFormPage> {
     _companyId = t?.companyId ?? authState.user.company.id;
     _clientCompanyId = t?.clientCompanyId;
     _vehicleId = t?.vehicleId;
+    _originLocationId = t?.originLocationId;
+    _destinationLocationId = t?.destinationLocationId;
 
     _loadRelatedData();
   }
@@ -95,10 +98,17 @@ class _TripFormPageState extends State<TripFormPage> {
           ? await vehicleRepo.getByCompany(_companyId)
           : await vehicleRepo.getAll();
 
+      // Cargar ubicaciones de clientes
+      final locationRepo = ClientLocationRepository();
+      final locations = await locationRepo.getAll();
+
       if (mounted) {
         setState(() {
           _clientCompanies = clientCompanies;
           _vehicles = vehicles;
+          _clientLocations = locations
+              .where((l) => l.status == ClientLocationStatus.active)
+              .toList();
         });
       }
     } catch (e) {
@@ -130,8 +140,6 @@ class _TripFormPageState extends State<TripFormPage> {
 
   @override
   void dispose() {
-    _originController.dispose();
-    _destinationController.dispose();
     _priceController.dispose();
     super.dispose();
   }
@@ -282,17 +290,26 @@ class _TripFormPageState extends State<TripFormPage> {
                     ),
                   ),
 
-                  // Origen
-                  TextFormField(
-                    controller: _originController,
-                    style: const TextStyle(color: AppColors.greyDark),
+                  // Origen (ubicación del cliente)
+                  DropdownButtonFormField<String>(
+                    initialValue: _originLocationId,
                     decoration: _inputDecoration(
                       label: 'Origen *',
                       icon: Icons.trip_origin,
                     ),
-                    textCapitalization: TextCapitalization.words,
+                    items: _clientLocations
+                        .map(
+                          (l) => DropdownMenuItem(
+                            value: l.id,
+                            child: Text(l.displayName),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() => _originLocationId = value);
+                    },
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                      if (value == null || value.isEmpty) {
                         return 'El origen es obligatorio.';
                       }
                       return null;
@@ -300,17 +317,26 @@ class _TripFormPageState extends State<TripFormPage> {
                   ),
                   const SizedBox(height: AppDefaults.margin),
 
-                  // Destino
-                  TextFormField(
-                    controller: _destinationController,
-                    style: const TextStyle(color: AppColors.greyDark),
+                  // Destino (ubicación del cliente)
+                  DropdownButtonFormField<String>(
+                    initialValue: _destinationLocationId,
                     decoration: _inputDecoration(
                       label: 'Destino *',
                       icon: Icons.flag,
                     ),
-                    textCapitalization: TextCapitalization.words,
+                    items: _clientLocations
+                        .map(
+                          (l) => DropdownMenuItem(
+                            value: l.id,
+                            child: Text(l.displayName),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() => _destinationLocationId = value);
+                    },
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                      if (value == null || value.isEmpty) {
                         return 'El destino es obligatorio.';
                       }
                       return null;
@@ -449,8 +475,6 @@ class _TripFormPageState extends State<TripFormPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final bloc = context.read<TripBloc>();
-    final origin = _originController.text.trim();
-    final destination = _destinationController.text.trim();
     final priceText = _priceController.text.trim();
     final price = priceText.isNotEmpty ? double.tryParse(priceText) : null;
 
@@ -465,8 +489,8 @@ class _TripFormPageState extends State<TripFormPage> {
           clientCompanyId: _clientCompanyId,
           vehicleId: _vehicleId,
           assignedByUserId: currentUserId,
-          origin: origin,
-          destination: destination,
+          originLocationId: _originLocationId,
+          destinationLocationId: _destinationLocationId,
           departureTime: _departureTime,
           arrivalTime: _arrivalTime,
           status: _status,
@@ -480,8 +504,8 @@ class _TripFormPageState extends State<TripFormPage> {
           clientCompanyId: _clientCompanyId!,
           vehicleId: _vehicleId!,
           assignedByUserId: currentUserId,
-          origin: origin,
-          destination: destination,
+          originLocationId: _originLocationId!,
+          destinationLocationId: _destinationLocationId!,
           departureTime: _departureTime,
           arrivalTime: _arrivalTime,
           price: price,

@@ -873,8 +873,8 @@ void main() {
         companyId: 'c1',
         clientCompanyId: 'cc1',
         vehicleId: 'v1',
-        origin: 'La Paz',
-        destination: 'Oruro',
+        originLocationId: 'loc-1',
+        destinationLocationId: 'loc-2',
       );
       expect(trip.isNotEmpty, isTrue);
     });
@@ -886,8 +886,8 @@ void main() {
         'client_company_id': 'cc-1',
         'vehicle_id': 'v-1',
         'assigned_by_user_id': 'admin-1',
-        'origin': 'Cochabamba',
-        'destination': 'Santa Cruz',
+        'origin_location_id': 'loc-origin',
+        'destination_location_id': 'loc-dest',
         'status': 'in_progress',
         'price': 1500.50,
       };
@@ -897,10 +897,41 @@ void main() {
       expect(trip.clientCompanyId, 'cc-1');
       expect(trip.vehicleId, 'v-1');
       expect(trip.assignedByUserId, 'admin-1');
-      expect(trip.origin, 'Cochabamba');
-      expect(trip.destination, 'Santa Cruz');
+      expect(trip.originLocationId, 'loc-origin');
+      expect(trip.destinationLocationId, 'loc-dest');
       expect(trip.status, TripStatus.inProgress);
       expect(trip.price, 1500.50);
+    });
+
+    test('Trip.fromJson parsea join de origin_location', () {
+      final json = {
+        'id': 'trip-2',
+        'company_id': 'comp-1',
+        'client_company_id': 'cc-1',
+        'vehicle_id': 'v-1',
+        'origin_location_id': 'loc-1',
+        'destination_location_id': 'loc-2',
+        'status': 'pending',
+        'origin_location': {
+          'id': 'loc-1',
+          'client_company_id': 'cc-1',
+          'name': 'Almacén Central',
+          'type': 'WAREHOUSE',
+          'status': 'ACTIVE',
+        },
+        'destination_location': {
+          'id': 'loc-2',
+          'client_company_id': 'cc-1',
+          'name': 'Planta Norte',
+          'type': 'PLANT',
+          'status': 'ACTIVE',
+        },
+      };
+      final trip = Trip.fromJson(json);
+      expect(trip.originLocation, isNotNull);
+      expect(trip.originLocation!.name, 'Almacén Central');
+      expect(trip.destinationLocation, isNotNull);
+      expect(trip.destinationLocation!.name, 'Planta Norte');
     });
 
     test('Trip.toJson serializa correctamente', () {
@@ -909,8 +940,8 @@ void main() {
         companyId: 'c-1',
         clientCompanyId: 'cc-1',
         vehicleId: 'v-1',
-        origin: 'Sucre',
-        destination: 'Potosí',
+        originLocationId: 'loc-a',
+        destinationLocationId: 'loc-b',
         status: TripStatus.pending,
         price: 800.00,
       );
@@ -918,10 +949,12 @@ void main() {
       expect(json['company_id'], 'c-1');
       expect(json['client_company_id'], 'cc-1');
       expect(json['vehicle_id'], 'v-1');
-      expect(json['origin'], 'Sucre');
-      expect(json['destination'], 'Potosí');
+      expect(json['origin_location_id'], 'loc-a');
+      expect(json['destination_location_id'], 'loc-b');
       expect(json['status'], 'pending');
       expect(json['price'], 800.00);
+      expect(json.containsKey('origin'), isFalse);
+      expect(json.containsKey('destination'), isFalse);
     });
 
     test('Trip.copyWith crea copia con campos actualizados', () {
@@ -930,31 +963,59 @@ void main() {
         companyId: 'c-1',
         clientCompanyId: 'cc-1',
         vehicleId: 'v-1',
-        origin: 'La Paz',
-        destination: 'Oruro',
+        originLocationId: 'loc-1',
+        destinationLocationId: 'loc-2',
         status: TripStatus.pending,
       );
       final updated = trip.copyWith(
         status: TripStatus.completed,
         price: 500.0,
-        destination: 'Cochabamba',
+        destinationLocationId: 'loc-3',
       );
       expect(updated.id, 't-1');
-      expect(updated.origin, 'La Paz');
-      expect(updated.destination, 'Cochabamba');
+      expect(updated.originLocationId, 'loc-1');
+      expect(updated.destinationLocationId, 'loc-3');
       expect(updated.status, TripStatus.completed);
       expect(updated.price, 500.0);
     });
 
-    test('Trip.displayName muestra ruta', () {
+    test('Trip.displayName muestra ruta con nombres de ubicación', () {
       const trip = Trip(
         id: '1',
         companyId: 'c1',
         clientCompanyId: 'cc1',
         vehicleId: 'v1',
-        origin: 'La Paz',
-        destination: 'Oruro',
+        originLocationId: 'loc-1',
+        destinationLocationId: 'loc-2',
       );
+      // Sin join, usa IDs
+      expect(trip.displayName, 'loc-1 → loc-2');
+    });
+
+    test('Trip.displayName usa nombre del join si está disponible', () {
+      final trip = Trip.fromJson({
+        'id': '1',
+        'company_id': 'c1',
+        'client_company_id': 'cc1',
+        'vehicle_id': 'v1',
+        'origin_location_id': 'loc-1',
+        'destination_location_id': 'loc-2',
+        'status': 'pending',
+        'origin_location': {
+          'id': 'loc-1',
+          'client_company_id': 'cc1',
+          'name': 'La Paz',
+          'type': 'WAREHOUSE',
+          'status': 'ACTIVE',
+        },
+        'destination_location': {
+          'id': 'loc-2',
+          'client_company_id': 'cc1',
+          'name': 'Oruro',
+          'type': 'PLANT',
+          'status': 'ACTIVE',
+        },
+      });
       expect(trip.displayName, 'La Paz → Oruro');
     });
 
@@ -972,6 +1033,10 @@ void main() {
       expect(TripStatus.inProgress.label, 'En Curso');
       expect(TripStatus.completed.label, 'Completado');
       expect(TripStatus.cancelled.label, 'Cancelado');
+    });
+
+    test('Trip.props incluye 18 propiedades', () {
+      expect(Trip.empty.props.length, 18);
     });
   });
 
@@ -1010,15 +1075,15 @@ void main() {
         companyId: 'c-1',
         clientCompanyId: 'cc-1',
         vehicleId: 'v-1',
-        origin: 'La Paz',
-        destination: 'Oruro',
+        originLocationId: 'loc-a',
+        destinationLocationId: 'loc-b',
         price: 500.0,
       );
       expect(event.companyId, 'c-1');
       expect(event.clientCompanyId, 'cc-1');
       expect(event.vehicleId, 'v-1');
-      expect(event.origin, 'La Paz');
-      expect(event.destination, 'Oruro');
+      expect(event.originLocationId, 'loc-a');
+      expect(event.destinationLocationId, 'loc-b');
       expect(event.price, 500.0);
     });
 
@@ -1026,11 +1091,11 @@ void main() {
       const event = TripUpdateRequested(
         id: 't-1',
         status: TripStatus.completed,
-        origin: 'Cochabamba',
+        originLocationId: 'loc-new',
       );
       expect(event.id, 't-1');
       expect(event.status, TripStatus.completed);
-      expect(event.origin, 'Cochabamba');
+      expect(event.originLocationId, 'loc-new');
       expect(event.vehicleId, isNull);
     });
 

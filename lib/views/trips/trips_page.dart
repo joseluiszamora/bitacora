@@ -175,7 +175,8 @@ class _TripsView extends StatelessWidget {
         title: const Text('Eliminar Viaje'),
         content: Text(
           '¿Estás seguro de eliminar el viaje '
-          '"${trip.origin} → ${trip.destination}"?\n\n'
+          '"${trip.originLocation?.name ?? trip.originLocationId} → '
+          '${trip.destinationLocation?.name ?? trip.destinationLocationId}"?\n\n'
           'Esta acción no se puede deshacer.',
         ),
         actions: [
@@ -251,7 +252,7 @@ class _TripCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          trip.origin,
+                          trip.originLocation?.name ?? trip.originLocationId,
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
@@ -270,7 +271,8 @@ class _TripCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                trip.destination,
+                                trip.destinationLocation?.name ??
+                                    trip.destinationLocationId,
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: AppColors.grey,

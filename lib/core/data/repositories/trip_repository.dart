@@ -66,8 +66,8 @@ class TripRepository {
     required String clientCompanyId,
     required String vehicleId,
     String? assignedByUserId,
-    required String origin,
-    required String destination,
+    required String originLocationId,
+    required String destinationLocationId,
     DateTime? departureTime,
     DateTime? arrivalTime,
     double? price,
@@ -77,8 +77,8 @@ class TripRepository {
         'company_id': companyId,
         'client_company_id': clientCompanyId,
         'vehicle_id': vehicleId,
-        'origin': origin,
-        'destination': destination,
+        'origin_location_id': originLocationId,
+        'destination_location_id': destinationLocationId,
         'status': 'pending',
       };
       if (assignedByUserId != null) {
@@ -107,8 +107,8 @@ class TripRepository {
     String? clientCompanyId,
     String? vehicleId,
     String? assignedByUserId,
-    String? origin,
-    String? destination,
+    String? originLocationId,
+    String? destinationLocationId,
     DateTime? departureTime,
     DateTime? arrivalTime,
     TripStatus? status,
@@ -124,8 +124,12 @@ class TripRepository {
       if (assignedByUserId != null) {
         updates['assigned_by_user_id'] = assignedByUserId;
       }
-      if (origin != null) updates['origin'] = origin;
-      if (destination != null) updates['destination'] = destination;
+      if (originLocationId != null) {
+        updates['origin_location_id'] = originLocationId;
+      }
+      if (destinationLocationId != null) {
+        updates['destination_location_id'] = destinationLocationId;
+      }
       if (departureTime != null) {
         updates['departure_time'] = departureTime.toIso8601String();
       }

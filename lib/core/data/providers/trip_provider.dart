@@ -12,43 +12,105 @@ class TripProvider {
       '*, company:companies(*), '
       'client_company:client_companies(*), '
       'vehicle:vehicles(*), '
-      'assigned_by:profiles!trips_assigned_by_user_id_fkey(*)';
+      'assigned_by:profiles!trips_assigned_by_user_id_fkey(*), '
+      'origin_location:client_locations!trips_origin_location_id_fkey('
+      '*, client_company:client_companies(*), city:cities(*, state:states(*))'
+      '), '
+      'destination_location:client_locations!trips_destination_location_id_fkey('
+      '*, client_company:client_companies(*), city:cities(*, state:states(*))'
+      ')';
+
+  /// Selector sin join a cities/states (fallback si la tabla no existe aún).
+  static const _selectBasic =
+      '*, company:companies(*), '
+      'client_company:client_companies(*), '
+      'vehicle:vehicles(*), '
+      'assigned_by:profiles!trips_assigned_by_user_id_fkey(*), '
+      'origin_location:client_locations!trips_origin_location_id_fkey('
+      '*, client_company:client_companies(*)'
+      '), '
+      'destination_location:client_locations!trips_destination_location_id_fkey('
+      '*, client_company:client_companies(*)'
+      ')';
 
   /// Obtener todos los viajes con joins.
   Future<List<Map<String, dynamic>>> getAll() async {
-    final response = await _table
-        .select(_selectWithJoins)
-        .order('created_at', ascending: false);
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await _table
+          .select(_selectWithJoins)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST200') {
+        final response = await _table
+            .select(_selectBasic)
+            .order('created_at', ascending: false);
+        return List<Map<String, dynamic>>.from(response);
+      }
+      rethrow;
+    }
   }
 
   /// Obtener viajes por empresa (transportista).
   Future<List<Map<String, dynamic>>> getByCompany(String companyId) async {
-    final response = await _table
-        .select(_selectWithJoins)
-        .eq('company_id', companyId)
-        .order('created_at', ascending: false);
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await _table
+          .select(_selectWithJoins)
+          .eq('company_id', companyId)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST200') {
+        final response = await _table
+            .select(_selectBasic)
+            .eq('company_id', companyId)
+            .order('created_at', ascending: false);
+        return List<Map<String, dynamic>>.from(response);
+      }
+      rethrow;
+    }
   }
 
   /// Obtener viajes por empresa cliente.
   Future<List<Map<String, dynamic>>> getByClientCompany(
     String clientCompanyId,
   ) async {
-    final response = await _table
-        .select(_selectWithJoins)
-        .eq('client_company_id', clientCompanyId)
-        .order('created_at', ascending: false);
-    return List<Map<String, dynamic>>.from(response);
+    try {
+      final response = await _table
+          .select(_selectWithJoins)
+          .eq('client_company_id', clientCompanyId)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST200') {
+        final response = await _table
+            .select(_selectBasic)
+            .eq('client_company_id', clientCompanyId)
+            .order('created_at', ascending: false);
+        return List<Map<String, dynamic>>.from(response);
+      }
+      rethrow;
+    }
   }
 
   /// Obtener un viaje por su ID.
   Future<Map<String, dynamic>?> getById(String id) async {
-    final response = await _table
-        .select(_selectWithJoins)
-        .eq('id', id)
-        .maybeSingle();
-    return response;
+    try {
+      final response = await _table
+          .select(_selectWithJoins)
+          .eq('id', id)
+          .maybeSingle();
+      return response;
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST200') {
+        final response = await _table
+            .select(_selectBasic)
+            .eq('id', id)
+            .maybeSingle();
+        return response;
+      }
+      rethrow;
+    }
   }
 
   /// Crear un nuevo viaje.

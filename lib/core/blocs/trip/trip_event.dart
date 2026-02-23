@@ -26,8 +26,8 @@ final class TripCreateRequested extends TripEvent {
     required this.clientCompanyId,
     required this.vehicleId,
     this.assignedByUserId,
-    required this.origin,
-    required this.destination,
+    required this.originLocationId,
+    required this.destinationLocationId,
     this.departureTime,
     this.arrivalTime,
     this.price,
@@ -37,8 +37,8 @@ final class TripCreateRequested extends TripEvent {
   final String clientCompanyId;
   final String vehicleId;
   final String? assignedByUserId;
-  final String origin;
-  final String destination;
+  final String originLocationId;
+  final String destinationLocationId;
   final DateTime? departureTime;
   final DateTime? arrivalTime;
   final double? price;
@@ -49,8 +49,8 @@ final class TripCreateRequested extends TripEvent {
     clientCompanyId,
     vehicleId,
     assignedByUserId,
-    origin,
-    destination,
+    originLocationId,
+    destinationLocationId,
     departureTime,
     arrivalTime,
     price,
@@ -65,8 +65,8 @@ final class TripUpdateRequested extends TripEvent {
     this.clientCompanyId,
     this.vehicleId,
     this.assignedByUserId,
-    this.origin,
-    this.destination,
+    this.originLocationId,
+    this.destinationLocationId,
     this.departureTime,
     this.arrivalTime,
     this.status,
@@ -78,8 +78,8 @@ final class TripUpdateRequested extends TripEvent {
   final String? clientCompanyId;
   final String? vehicleId;
   final String? assignedByUserId;
-  final String? origin;
-  final String? destination;
+  final String? originLocationId;
+  final String? destinationLocationId;
   final DateTime? departureTime;
   final DateTime? arrivalTime;
   final TripStatus? status;
@@ -92,8 +92,8 @@ final class TripUpdateRequested extends TripEvent {
     clientCompanyId,
     vehicleId,
     assignedByUserId,
-    origin,
-    destination,
+    originLocationId,
+    destinationLocationId,
     departureTime,
     arrivalTime,
     status,
