@@ -8,6 +8,8 @@ import '../data/repositories/company_client_repository.dart';
 import '../data/repositories/company_repository.dart';
 import '../data/repositories/state_repository.dart';
 import '../data/repositories/user_repository.dart';
+import '../data/repositories/trip_log_media_repository.dart';
+import '../data/repositories/trip_log_repository.dart';
 import '../data/repositories/trip_repository.dart';
 import '../data/repositories/vehicle_assignment_repository.dart';
 import '../data/repositories/vehicle_document_repository.dart';
@@ -20,6 +22,7 @@ import 'login/login_bloc.dart';
 import 'permission/permission_bloc.dart';
 import 'theme/theme_cubit.dart';
 import 'trip/trip_bloc.dart';
+import 'trip_log/trip_log_bloc.dart';
 import 'user_management/user_management_bloc.dart';
 import 'vehicle/vehicle_bloc.dart';
 import 'vehicle_assignment/vehicle_assignment_bloc.dart';
@@ -43,6 +46,10 @@ void serviceLocatorInit() {
     () => VehicleDocumentRepository(),
   );
   getIt.registerLazySingleton<TripRepository>(() => TripRepository());
+  getIt.registerLazySingleton<TripLogRepository>(() => TripLogRepository());
+  getIt.registerLazySingleton<TripLogMediaRepository>(
+    () => TripLogMediaRepository(),
+  );
   getIt.registerLazySingleton<VehicleAssignmentRepository>(
     () => VehicleAssignmentRepository(),
   );
@@ -93,6 +100,10 @@ void serviceLocatorInit() {
 
   getIt.registerFactory<TripBloc>(
     () => TripBloc(tripRepository: getIt<TripRepository>()),
+  );
+
+  getIt.registerFactory<TripLogBloc>(
+    () => TripLogBloc(tripLogRepository: getIt<TripLogRepository>()),
   );
 
   getIt.registerFactory<VehicleAssignmentBloc>(() => VehicleAssignmentBloc());

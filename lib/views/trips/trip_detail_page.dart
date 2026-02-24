@@ -5,6 +5,7 @@ import '../../../core/blocs/trip/trip_bloc.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_defaults.dart';
 import '../../../core/data/models/trip.dart';
+import '../trip_logs/trip_logs_page.dart';
 import 'trip_form_page.dart';
 
 /// Página de detalle de un viaje.
@@ -26,6 +27,17 @@ class TripDetailPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Detalle del Viaje'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.timeline),
+            tooltip: 'Bitácora',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => TripLogsPage(trip: trip),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Editar',
@@ -227,6 +239,53 @@ class TripDetailPage extends StatelessWidget {
                         ),
                     ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Acceso a Bitácora de eventos
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: AppColors.primaryAccent.withAlpha(77),
+                  ),
+                ),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryAccent.withAlpha(26),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.timeline,
+                      color: AppColors.primaryAccent,
+                    ),
+                  ),
+                  title: const Text(
+                    'Bitácora de Eventos',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Ver línea de tiempo del viaje',
+                    style: TextStyle(fontSize: 12, color: AppColors.grey),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.primaryAccent,
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => TripLogsPage(trip: trip),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],

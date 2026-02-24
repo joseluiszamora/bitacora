@@ -20,6 +20,9 @@ import 'package:bitacora/core/data/models/city.dart';
 import 'package:bitacora/core/data/models/client_location.dart';
 import 'package:bitacora/core/data/models/app_state.dart';
 import 'package:bitacora/core/blocs/client_location/client_location_bloc.dart';
+import 'package:bitacora/core/data/models/trip_log.dart';
+import 'package:bitacora/core/data/models/trip_log_media.dart';
+import 'package:bitacora/core/blocs/trip_log/trip_log_bloc.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -1914,6 +1917,450 @@ void main() {
       const event = ClientLocationDeleteRequested('loc-123');
       expect(event.id, 'loc-123');
       expect(event.props, ['loc-123']);
+    });
+  });
+
+  // ===========================================================
+  //  TRIP LOG MEDIA MODEL
+  // ===========================================================
+  group('TripLogMedia Model', () {
+    test('TripLogMedia.empty devuelve media vacío', () {
+      expect(TripLogMedia.empty.isEmpty, isTrue);
+    });
+
+    test('TripLogMedia con datos no está vacío', () {
+      const media = TripLogMedia(
+        id: 'tlm-1',
+        tripLogId: 'tl-1',
+        url: 'https://example.com/photo.jpg',
+      );
+      expect(media.isNotEmpty, isTrue);
+    });
+
+    test('TripLogMedia.fromJson parsea correctamente', () {
+      final json = {
+        'id': 'tlm-1',
+        'trip_log_id': 'tl-1',
+        'url': 'https://example.com/photo.jpg',
+        'type': 'PHOTO',
+        'caption': 'Foto de carga',
+        'created_at': '2025-06-01T10:00:00Z',
+      };
+      final media = TripLogMedia.fromJson(json);
+      expect(media.id, 'tlm-1');
+      expect(media.tripLogId, 'tl-1');
+      expect(media.url, 'https://example.com/photo.jpg');
+      expect(media.type, TripLogMediaType.photo);
+      expect(media.caption, 'Foto de carga');
+      expect(media.createdAt, isNotNull);
+    });
+
+    test('TripLogMedia.fromJson con tipo VIDEO', () {
+      final json = {
+        'id': 'tlm-2',
+        'trip_log_id': 'tl-1',
+        'url': 'https://example.com/video.mp4',
+        'type': 'VIDEO',
+      };
+      final media = TripLogMedia.fromJson(json);
+      expect(media.type, TripLogMediaType.video);
+    });
+
+    test('TripLogMedia.toJson serializa correctamente', () {
+      const media = TripLogMedia(
+        id: 'tlm-1',
+        tripLogId: 'tl-1',
+        url: 'https://example.com/photo.jpg',
+        type: TripLogMediaType.photo,
+        caption: 'Test caption',
+      );
+      final json = media.toJson();
+      expect(json['trip_log_id'], 'tl-1');
+      expect(json['url'], 'https://example.com/photo.jpg');
+      expect(json['type'], 'PHOTO');
+      expect(json['caption'], 'Test caption');
+      expect(json.containsKey('id'), isFalse);
+      expect(json.containsKey('created_at'), isFalse);
+    });
+
+    test('TripLogMedia copyWith sobreescribe campos', () {
+      const media = TripLogMedia(
+        id: 'tlm-1',
+        tripLogId: 'tl-1',
+        url: 'https://example.com/photo.jpg',
+      );
+      final updated = media.copyWith(
+        caption: 'Nueva descripción',
+        type: TripLogMediaType.video,
+      );
+      expect(updated.caption, 'Nueva descripción');
+      expect(updated.type, TripLogMediaType.video);
+      expect(updated.id, 'tlm-1');
+    });
+
+    test('TripLogMediaType labels en español', () {
+      expect(TripLogMediaType.photo.label, 'Foto');
+      expect(TripLogMediaType.video.label, 'Video');
+    });
+
+    test('TripLogMediaType fromValue con valor desconocido retorna photo', () {
+      expect(TripLogMediaType.fromValue('UNKNOWN'), TripLogMediaType.photo);
+      expect(TripLogMediaType.fromValue(null), TripLogMediaType.photo);
+    });
+
+    test('TripLogMedia props contiene todos los campos', () {
+      expect(TripLogMedia.empty.props.length, 6);
+    });
+  });
+
+  // ===========================================================
+  //  TRIP LOG MODEL
+  // ===========================================================
+  group('TripLog Model', () {
+    test('TripLog.empty devuelve log vacío', () {
+      expect(TripLog.empty.isEmpty, isTrue);
+    });
+
+    test('TripLog con datos no está vacío', () {
+      const log = TripLog(
+        id: 'tl-1',
+        tripId: 'trip-1',
+        eventType: TripLogEventType.started,
+      );
+      expect(log.isNotEmpty, isTrue);
+    });
+
+    test('TripLog.fromJson parsea correctamente (básico)', () {
+      final json = {
+        'id': 'tl-1',
+        'trip_id': 'trip-1',
+        'user_id': 'user-1',
+        'driver_id': null,
+        'event_type': 'STARTED',
+        'description': 'Viaje iniciado',
+        'latitude': -17.39389,
+        'longitude': -66.15689,
+        'metadata': {'speed': 60},
+        'created_at': '2025-06-01T10:00:00Z',
+      };
+      final log = TripLog.fromJson(json);
+      expect(log.id, 'tl-1');
+      expect(log.tripId, 'trip-1');
+      expect(log.userId, 'user-1');
+      expect(log.driverId, isNull);
+      expect(log.eventType, TripLogEventType.started);
+      expect(log.description, 'Viaje iniciado');
+      expect(log.latitude, -17.39389);
+      expect(log.longitude, -66.15689);
+      expect(log.metadata, {'speed': 60});
+      expect(log.hasLocation, isTrue);
+      expect(log.createdAt, isNotNull);
+    });
+
+    test('TripLog.fromJson con joins de user y driver', () {
+      final json = {
+        'id': 'tl-2',
+        'trip_id': 'trip-1',
+        'user_id': 'user-1',
+        'driver_id': 'driver-1',
+        'event_type': 'INCIDENT',
+        'user': {
+          'id': 'user-1',
+          'full_name': 'Supervisor López',
+          'email': 'supervisor@test.com',
+        },
+        'driver': {
+          'id': 'driver-1',
+          'full_name': 'Conductor Pérez',
+          'email': 'driver@test.com',
+        },
+        'media': [
+          {
+            'id': 'tlm-1',
+            'trip_log_id': 'tl-2',
+            'url': 'https://example.com/photo.jpg',
+            'type': 'PHOTO',
+          },
+        ],
+      };
+      final log = TripLog.fromJson(json);
+      expect(log.user, isNotNull);
+      expect(log.user!.name, 'Supervisor López');
+      expect(log.driver, isNotNull);
+      expect(log.driver!.name, 'Conductor Pérez');
+      expect(log.media.length, 1);
+      expect(log.media.first.url, 'https://example.com/photo.jpg');
+    });
+
+    test('TripLog.fromJson sin media retorna lista vacía', () {
+      final json = {
+        'id': 'tl-3',
+        'trip_id': 'trip-1',
+        'event_type': 'COMPLETED',
+      };
+      final log = TripLog.fromJson(json);
+      expect(log.media, isEmpty);
+    });
+
+    test('TripLog.toJson serializa correctamente', () {
+      const log = TripLog(
+        id: 'tl-1',
+        tripId: 'trip-1',
+        userId: 'user-1',
+        eventType: TripLogEventType.departed,
+        description: 'En camino',
+        latitude: -17.5,
+        longitude: -63.2,
+      );
+      final json = log.toJson();
+      expect(json['trip_id'], 'trip-1');
+      expect(json['user_id'], 'user-1');
+      expect(json['event_type'], 'DEPARTED');
+      expect(json['description'], 'En camino');
+      expect(json['latitude'], -17.5);
+      expect(json.containsKey('id'), isFalse);
+      expect(json.containsKey('created_at'), isFalse);
+    });
+
+    test('TripLog copyWith sobreescribe campos', () {
+      const log = TripLog(
+        id: 'tl-1',
+        tripId: 'trip-1',
+        eventType: TripLogEventType.assigned,
+      );
+      final updated = log.copyWith(
+        eventType: TripLogEventType.completed,
+        description: 'Completado exitosamente',
+      );
+      expect(updated.eventType, TripLogEventType.completed);
+      expect(updated.description, 'Completado exitosamente');
+      expect(updated.id, 'tl-1');
+    });
+
+    test('TripLog displayName incluye ícono y label', () {
+      const log = TripLog(
+        id: 'tl-1',
+        tripId: 'trip-1',
+        eventType: TripLogEventType.incident,
+      );
+      expect(log.displayName, '⚠️ Incidente');
+    });
+
+    test('TripLog hasLocation es false cuando no tiene coordenadas', () {
+      const log = TripLog(
+        id: 'tl-1',
+        tripId: 'trip-1',
+        eventType: TripLogEventType.assigned,
+      );
+      expect(log.hasLocation, isFalse);
+    });
+
+    test('TripLog props contiene todos los campos', () {
+      expect(TripLog.empty.props.length, 14);
+    });
+  });
+
+  // ===========================================================
+  //  TRIP LOG EVENT TYPE
+  // ===========================================================
+  group('TripLogEventType', () {
+    test('TripLogEventType tiene 14 valores', () {
+      expect(TripLogEventType.values.length, 14);
+    });
+
+    test('TripLogEventType fromValue parsea todos los valores', () {
+      expect(TripLogEventType.fromValue('ASSIGNED'), TripLogEventType.assigned);
+      expect(TripLogEventType.fromValue('STARTED'), TripLogEventType.started);
+      expect(
+        TripLogEventType.fromValue('ARRIVED_AT_ORIGIN'),
+        TripLogEventType.arrivedAtOrigin,
+      );
+      expect(
+        TripLogEventType.fromValue('LOADING_STARTED'),
+        TripLogEventType.loadingStarted,
+      );
+      expect(
+        TripLogEventType.fromValue('LOADING_COMPLETED'),
+        TripLogEventType.loadingCompleted,
+      );
+      expect(TripLogEventType.fromValue('DEPARTED'), TripLogEventType.departed);
+      expect(
+        TripLogEventType.fromValue('ARRIVED_AT_STOP'),
+        TripLogEventType.arrivedAtStop,
+      );
+      expect(TripLogEventType.fromValue('INCIDENT'), TripLogEventType.incident);
+      expect(TripLogEventType.fromValue('DELAY'), TripLogEventType.delay);
+      expect(
+        TripLogEventType.fromValue('ARRIVED_AT_DESTINATION'),
+        TripLogEventType.arrivedAtDestination,
+      );
+      expect(
+        TripLogEventType.fromValue('UNLOADING_STARTED'),
+        TripLogEventType.unloadingStarted,
+      );
+      expect(
+        TripLogEventType.fromValue('UNLOADING_COMPLETED'),
+        TripLogEventType.unloadingCompleted,
+      );
+      expect(
+        TripLogEventType.fromValue('COMPLETED'),
+        TripLogEventType.completed,
+      );
+      expect(
+        TripLogEventType.fromValue('CANCELLED'),
+        TripLogEventType.cancelled,
+      );
+    });
+
+    test(
+      'TripLogEventType fromValue con valor desconocido retorna assigned',
+      () {
+        expect(
+          TripLogEventType.fromValue('UNKNOWN'),
+          TripLogEventType.assigned,
+        );
+        expect(TripLogEventType.fromValue(null), TripLogEventType.assigned);
+      },
+    );
+
+    test('TripLogEventType labels en español', () {
+      expect(TripLogEventType.assigned.label, 'Asignado');
+      expect(TripLogEventType.started.label, 'Iniciado');
+      expect(TripLogEventType.arrivedAtOrigin.label, 'Llegó al Origen');
+      expect(TripLogEventType.loadingStarted.label, 'Carga Iniciada');
+      expect(TripLogEventType.loadingCompleted.label, 'Carga Completada');
+      expect(TripLogEventType.departed.label, 'En Camino');
+      expect(TripLogEventType.arrivedAtStop.label, 'Llegó a Parada');
+      expect(TripLogEventType.incident.label, 'Incidente');
+      expect(TripLogEventType.delay.label, 'Retraso');
+      expect(TripLogEventType.arrivedAtDestination.label, 'Llegó al Destino');
+      expect(TripLogEventType.unloadingStarted.label, 'Descarga Iniciada');
+      expect(TripLogEventType.unloadingCompleted.label, 'Descarga Completada');
+      expect(TripLogEventType.completed.label, 'Completado');
+      expect(TripLogEventType.cancelled.label, 'Cancelado');
+    });
+
+    test('TripLogEventType icon no está vacío', () {
+      for (final type in TripLogEventType.values) {
+        expect(type.icon.isNotEmpty, isTrue);
+      }
+    });
+  });
+
+  // ===========================================================
+  //  TRIP LOG BLOC
+  // ===========================================================
+  group('TripLogBloc', () {
+    test('TripLogState inicial tiene valores por defecto', () {
+      const state = TripLogState();
+      expect(state.status, TripLogStateStatus.initial);
+      expect(state.logs, isEmpty);
+      expect(state.errorMessage, '');
+    });
+
+    test('TripLogState copyWith sobreescribe campos', () {
+      final logs = [
+        const TripLog(
+          id: 'tl-1',
+          tripId: 'trip-1',
+          eventType: TripLogEventType.started,
+        ),
+      ];
+      const state = TripLogState();
+      final updated = state.copyWith(
+        status: TripLogStateStatus.loaded,
+        logs: logs,
+      );
+      expect(updated.status, TripLogStateStatus.loaded);
+      expect(updated.logs.length, 1);
+      expect(updated.logs.first.id, 'tl-1');
+    });
+
+    test('TripLogState isIdle correcto', () {
+      expect(
+        const TripLogState(status: TripLogStateStatus.initial).isIdle,
+        isTrue,
+      );
+      expect(
+        const TripLogState(status: TripLogStateStatus.loaded).isIdle,
+        isTrue,
+      );
+      expect(
+        const TripLogState(status: TripLogStateStatus.success).isIdle,
+        isTrue,
+      );
+      expect(
+        const TripLogState(status: TripLogStateStatus.failure).isIdle,
+        isTrue,
+      );
+      expect(
+        const TripLogState(status: TripLogStateStatus.loading).isIdle,
+        isFalse,
+      );
+      expect(
+        const TripLogState(status: TripLogStateStatus.creating).isIdle,
+        isFalse,
+      );
+    });
+
+    test('TripLogState props contiene todos los campos', () {
+      const state = TripLogState();
+      expect(state.props.length, 3);
+    });
+
+    test('TripLogEvent — LoadRequested props', () {
+      const event = TripLogLoadRequested(tripId: 'trip-1');
+      expect(event.tripId, 'trip-1');
+      expect(event.props, ['trip-1']);
+    });
+
+    test('TripLogEvent — CreateRequested props', () {
+      const event = TripLogCreateRequested(
+        tripId: 'trip-1',
+        userId: 'user-1',
+        eventType: TripLogEventType.started,
+        description: 'Iniciado',
+        latitude: -17.5,
+        longitude: -63.2,
+      );
+      expect(event.tripId, 'trip-1');
+      expect(event.userId, 'user-1');
+      expect(event.driverId, isNull);
+      expect(event.eventType, TripLogEventType.started);
+      expect(event.description, 'Iniciado');
+      expect(event.latitude, -17.5);
+      expect(event.longitude, -63.2);
+      expect(event.metadata, isNull);
+    });
+
+    test('TripLogEvent — CreateRequested con driver', () {
+      const event = TripLogCreateRequested(
+        tripId: 'trip-1',
+        driverId: 'driver-1',
+        eventType: TripLogEventType.arrivedAtOrigin,
+      );
+      expect(event.userId, isNull);
+      expect(event.driverId, 'driver-1');
+      expect(event.eventType, TripLogEventType.arrivedAtOrigin);
+    });
+
+    test('TripLogEvent — UpdateRequested props', () {
+      const event = TripLogUpdateRequested(
+        id: 'tl-1',
+        eventType: TripLogEventType.completed,
+        description: 'Completado',
+      );
+      expect(event.id, 'tl-1');
+      expect(event.eventType, TripLogEventType.completed);
+      expect(event.description, 'Completado');
+      expect(event.userId, isNull);
+      expect(event.driverId, isNull);
+    });
+
+    test('TripLogEvent — DeleteRequested props', () {
+      const event = TripLogDeleteRequested('tl-123');
+      expect(event.id, 'tl-123');
+      expect(event.props, ['tl-123']);
     });
   });
 }
