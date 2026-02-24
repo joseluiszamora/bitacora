@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_defaults.dart';
 import '../../../core/data/models/trip_log.dart';
 import '../../../core/data/models/user_role.dart';
+import '../../../core/services/location_service.dart';
 
 /// Formulario para crear o editar un log de viaje.
 class TripLogFormPage extends StatefulWidget {
@@ -36,6 +37,8 @@ class _TripLogFormPageState extends State<TripLogFormPage> {
   late final TextEditingController _longitudeController;
 
   late TripLogEventType _eventType;
+  bool _isLoadingLocation = false;
+  String? _locationError;
 
   @override
   void initState() {
@@ -51,6 +54,11 @@ class _TripLogFormPageState extends State<TripLogFormPage> {
       text: log?.longitude?.toString() ?? '',
     );
     _eventType = log?.eventType ?? TripLogEventType.assigned;
+
+    // Obtener ubicación automáticamente al crear un nuevo evento.
+    if (!widget.isEditing) {
+      _fetchCurrentLocation();
+    }
   }
 
   @override
@@ -131,14 +139,61 @@ class _TripLogFormPageState extends State<TripLogFormPage> {
                   const SizedBox(height: 16),
 
                   // Ubicación GPS
-                  const Text(
-                    'Ubicación GPS (opcional)',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Ubicación GPS',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      if (_isLoadingLocation)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        TextButton.icon(
+                          onPressed: _fetchCurrentLocation,
+                          icon: const Icon(Icons.gps_fixed, size: 18),
+                          label: Text(
+                            _latitudeController.text.isNotEmpty
+                                ? 'Actualizar'
+                                : 'Obtener',
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primaryAccent,
+                          ),
+                        ),
+                    ],
                   ),
+                  if (_locationError != null) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          size: 16,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _locationError!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -224,6 +279,42 @@ class _TripLogFormPageState extends State<TripLogFormPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _fetchCurrentLocation() async {
+    setState(() {
+      _isLoadingLocation = true;
+      _locationError = null;
+    });
+
+    try {
+      final position = await LocationService.getCurrentPosition();
+      if (!mounted) return;
+
+      if (position != null) {
+        setState(() {
+          _latitudeController.text = position.latitude.toStringAsFixed(6);
+          _longitudeController.text = position.longitude.toStringAsFixed(6);
+          _isLoadingLocation = false;
+        });
+      } else {
+        // Obtener un mensaje descriptivo del motivo.
+        final message = await LocationService.getPermissionMessage();
+        if (!mounted) return;
+        setState(() {
+          _isLoadingLocation = false;
+          _locationError = message.isNotEmpty
+              ? message
+              : 'No se pudo obtener la ubicación.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingLocation = false;
+        _locationError = 'Error obteniendo ubicación: $e';
+      });
+    }
   }
 
   void _submit() {
