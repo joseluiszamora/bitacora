@@ -24,6 +24,7 @@ import 'permission/permission_bloc.dart';
 import 'theme/theme_cubit.dart';
 import 'trip/trip_bloc.dart';
 import 'trip_log/trip_log_bloc.dart';
+import 'trip_map/trip_map_bloc.dart';
 import 'user_management/user_management_bloc.dart';
 import 'vehicle/vehicle_bloc.dart';
 import 'vehicle_assignment/vehicle_assignment_bloc.dart';
@@ -113,6 +114,10 @@ void serviceLocatorInit() {
 
   getIt.registerFactory<MyTripsBloc>(
     () => MyTripsBloc(tripRepository: getIt<TripRepository>()),
+  );
+
+  getIt.registerFactory<TripMapBloc>(
+    () => TripMapBloc(tripRepository: getIt<TripRepository>()),
   );
 
   // === Servicios (Lazy Singletons) ===

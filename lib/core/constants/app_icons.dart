@@ -29,4 +29,5 @@ class AppIcons {
   static const IconData route = FontAwesomeIcons.route;
   static const IconData location = FontAwesomeIcons.locationDot;
   static const IconData warehouse = FontAwesomeIcons.warehouse;
+  static const IconData map = FontAwesomeIcons.mapLocationDot;
 }

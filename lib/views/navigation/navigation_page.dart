@@ -9,6 +9,7 @@ import '../home/home_page.dart';
 import '../my_trips/my_trips_page.dart';
 import '../notification/notification_page.dart';
 import '../profile/profile_page.dart';
+import '../trip_map/trip_map_page.dart';
 
 /// Barra de navegación inferior principal.
 class NavigationPage extends StatefulWidget {
@@ -29,16 +30,26 @@ class _NavigationPageState extends State<NavigationPage> {
     UserRole.driver,
   };
 
+  /// Roles que pueden ver la pestaña "Mapa de Viajes".
+  static const _rolesWithTripMap = {
+    UserRole.superAdmin,
+    UserRole.admin,
+    UserRole.supervisor,
+  };
+
   bool _showMyTrips(UserRole role) => _rolesWithMyTrips.contains(role);
+  bool _showTripMap(UserRole role) => _rolesWithTripMap.contains(role);
 
   @override
   Widget build(BuildContext context) {
     final role = context.watch<AuthenticationBloc>().state.user.role;
     final hasMyTrips = _showMyTrips(role);
+    final hasTripMap = _showTripMap(role);
 
     final pages = <Widget>[
       const HomePage(),
       if (hasMyTrips) const MyTripsPage(),
+      if (hasTripMap) const TripMapPage(),
       const NotificationPage(),
       const ProfilePage(),
     ];
@@ -52,6 +63,11 @@ class _NavigationPageState extends State<NavigationPage> {
         const BottomNavigationBarItem(
           icon: FaIcon(AppIcons.route),
           label: 'Mis Viajes',
+        ),
+      if (hasTripMap)
+        const BottomNavigationBarItem(
+          icon: FaIcon(AppIcons.map),
+          label: 'Mapa',
         ),
       const BottomNavigationBarItem(
         icon: FaIcon(AppIcons.notifications),
