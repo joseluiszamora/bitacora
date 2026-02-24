@@ -93,6 +93,42 @@ class TripProvider {
     }
   }
 
+  /// Obtener viajes asignados a un driver (vía vehicle_assignments).
+  ///
+  /// Busca los vehicle_ids asignados al driver y filtra los viajes.
+  Future<List<Map<String, dynamic>>> getByDriver(String driverId) async {
+    // 1. Obtener los vehicle_ids asignados al driver (activos)
+    final assignments = await ApiClient.supabase
+        .from('vehicle_assignments')
+        .select('vehicle_id')
+        .eq('driver_id', driverId)
+        .eq('is_active', true);
+
+    final vehicleIds = List<Map<String, dynamic>>.from(
+      assignments,
+    ).map((a) => a['vehicle_id'] as String).toList();
+
+    if (vehicleIds.isEmpty) return [];
+
+    // 2. Obtener los viajes de esos vehículos
+    try {
+      final response = await _table
+          .select(_selectWithJoins)
+          .inFilter('vehicle_id', vehicleIds)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST200') {
+        final response = await _table
+            .select(_selectBasic)
+            .inFilter('vehicle_id', vehicleIds)
+            .order('created_at', ascending: false);
+        return List<Map<String, dynamic>>.from(response);
+      }
+      rethrow;
+    }
+  }
+
   /// Obtener un viaje por su ID.
   Future<Map<String, dynamic>?> getById(String id) async {
     try {

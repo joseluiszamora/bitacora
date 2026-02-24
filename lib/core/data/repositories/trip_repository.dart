@@ -48,6 +48,17 @@ class TripRepository {
     }
   }
 
+  /// Obtener viajes asignados a un driver (vía vehicle_assignments).
+  Future<List<Trip>> getByDriver(String driverId) async {
+    try {
+      final data = await _provider.getByDriver(driverId);
+      return data.map(Trip.fromJson).toList();
+    } catch (e) {
+      debugPrint('❌ Error obteniendo viajes del conductor $driverId: $e');
+      rethrow;
+    }
+  }
+
   /// Obtener un viaje por su ID.
   Future<Trip?> getById(String id) async {
     try {

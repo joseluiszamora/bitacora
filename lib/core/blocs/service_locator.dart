@@ -19,6 +19,7 @@ import 'client_company/client_company_bloc.dart';
 import 'client_location/client_location_bloc.dart';
 import 'company/company_bloc.dart';
 import 'login/login_bloc.dart';
+import 'my_trips/my_trips_bloc.dart';
 import 'permission/permission_bloc.dart';
 import 'theme/theme_cubit.dart';
 import 'trip/trip_bloc.dart';
@@ -109,6 +110,10 @@ void serviceLocatorInit() {
   getIt.registerFactory<VehicleAssignmentBloc>(() => VehicleAssignmentBloc());
 
   getIt.registerFactory<ClientLocationBloc>(() => ClientLocationBloc());
+
+  getIt.registerFactory<MyTripsBloc>(
+    () => MyTripsBloc(tripRepository: getIt<TripRepository>()),
+  );
 
   // === Servicios (Lazy Singletons) ===
   // getIt.registerLazySingleton<NavigationService>(() => NavigationService());
