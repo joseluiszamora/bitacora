@@ -47,6 +47,9 @@ class UserProvider {
   /// Crear un nuevo usuario vía Supabase Auth (signUp) +
   /// el trigger `on_auth_user_created` crea el perfil automáticamente.
   /// Luego actualiza el perfil con rol, compañía, etc.
+  ///
+  /// IMPORTANTE: signUp() puede cambiar la sesión activa al nuevo usuario,
+  /// por lo que guardamos la sesión del admin y la restauramos después.
   Future<Map<String, dynamic>> createUser({
     required String email,
     required String password,
@@ -56,39 +59,64 @@ class UserProvider {
     String? clientCompanyId,
     String? phone,
   }) async {
-    // 1. Crear usuario en Supabase Auth
-    final authResponse = await _client.auth.signUp(
-      email: email,
-      password: password,
-      data: {'full_name': fullName},
-    );
+    // 0. Guardar el refresh token del admin para restaurar la sesión después
+    final adminRefreshToken = _client.auth.currentSession?.refreshToken;
 
-    final newUser = authResponse.user;
-    if (newUser == null) {
-      throw Exception('No se pudo crear el usuario en Auth.');
-    }
+    try {
+      // 1. Crear usuario en Supabase Auth
+      final authResponse = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'full_name': fullName},
+      );
 
-    // 2. Actualizar el perfil (creado por el trigger) con rol y compañía
-    final profileData = <String, dynamic>{
-      'full_name': fullName,
-      'role': role,
-      'phone': phone,
-    };
-    if (companyId != null && companyId.isNotEmpty) {
-      profileData['company_id'] = companyId;
-    }
-    if (clientCompanyId != null && clientCompanyId.isNotEmpty) {
-      profileData['client_company_id'] = clientCompanyId;
-    }
+      final newUser = authResponse.user;
+      if (newUser == null) {
+        throw Exception('No se pudo crear el usuario en Auth.');
+      }
 
-    await _profiles.update(profileData).eq('id', newUser.id);
+      final newUserId = newUser.id;
 
-    // 3. Retornar el perfil completo
-    final profile = await getById(newUser.id);
-    if (profile == null) {
-      throw Exception('No se pudo obtener el perfil del nuevo usuario.');
+      // 2. Restaurar la sesión del admin antes de hacer queries con RLS
+      if (adminRefreshToken != null) {
+        await _client.auth.setSession(adminRefreshToken);
+      }
+
+      // 3. Esperar a que el trigger cree el perfil
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // 4. Actualizar el perfil (creado por el trigger) con rol y compañía
+      final profileData = <String, dynamic>{
+        'full_name': fullName,
+        'role': role,
+        'phone': phone,
+      };
+      if (companyId != null && companyId.isNotEmpty) {
+        profileData['company_id'] = companyId;
+      }
+      if (clientCompanyId != null && clientCompanyId.isNotEmpty) {
+        profileData['client_company_id'] = clientCompanyId;
+      }
+
+      await _profiles.update(profileData).eq('id', newUserId);
+
+      // 5. Retornar el perfil completo (con la sesión del admin activa)
+      final profile = await getById(newUserId);
+      if (profile == null) {
+        throw Exception('No se pudo obtener el perfil del nuevo usuario.');
+      }
+      return profile;
+    } catch (e) {
+      // Si algo falla, asegurarnos de restaurar la sesión del admin
+      if (adminRefreshToken != null) {
+        try {
+          await _client.auth.setSession(adminRefreshToken);
+        } catch (_) {
+          // Si no se puede restaurar, al menos no perder el error original
+        }
+      }
+      rethrow;
     }
-    return profile;
   }
 
   /// Actualizar datos del perfil de un usuario.
