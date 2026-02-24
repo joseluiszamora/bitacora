@@ -9,6 +9,7 @@ import '../../core/blocs/service_locator.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_defaults.dart';
 import '../../core/data/models/trip.dart';
+import '../../core/data/models/trip_log.dart';
 
 /// Página "Mapa de Viajes".
 ///
@@ -71,7 +72,12 @@ class _TripMapViewState extends State<_TripMapView> {
         listener: (context, state) {
           // Cuando se selecciona un viaje, centrar el mapa en los marcadores.
           if (state.selectedTrip != null) {
-            _fitTripBounds(state.selectedTrip!);
+            _fitTripBounds(state.selectedTrip!, state.tripLogs);
+          }
+
+          // Cuando se selecciona una bitácora, mostrar su info.
+          if (state.selectedTripLog != null) {
+            _showTripLogInfo(context, state.selectedTripLog!);
           }
         },
         builder: (context, state) {
@@ -177,6 +183,9 @@ class _TripMapViewState extends State<_TripMapView> {
     if (state.selectedTrip != null) {
       // Mostrar solo el viaje seleccionado
       _addTripMarkers(markers, state.selectedTrip!);
+
+      // Agregar marcadores de bitácoras con ubicación
+      _addTripLogMarkers(markers, state);
     } else {
       // Mostrar todos los viajes con ubicaciones
       for (final trip in state.trips) {
@@ -225,6 +234,34 @@ class _TripMapViewState extends State<_TripMapView> {
     }
   }
 
+  /// Agrega marcadores para las bitácoras (trip_logs) que tienen ubicación.
+  void _addTripLogMarkers(List<Marker> markers, TripMapState state) {
+    final logsWithLocation = state.tripLogs
+        .where((log) => log.hasLocation)
+        .toList();
+
+    for (final log in logsWithLocation) {
+      final isSelected = state.selectedTripLog?.id == log.id;
+      markers.add(
+        Marker(
+          point: LatLng(log.latitude!, log.longitude!),
+          width: isSelected ? 44 : 34,
+          height: isSelected ? 44 : 34,
+          child: GestureDetector(
+            onTap: () {
+              context.read<TripMapBloc>().add(TripMapLogSelected(tripLog: log));
+            },
+            child: _MarkerIcon(
+              color: isSelected ? AppColors.primary : AppColors.gold,
+              icon: Icons.bookmark_rounded,
+              tooltip: log.displayName,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   /// Construye la línea de ruta entre origen y destino.
   PolylineLayer _buildRouteLine(Trip trip) {
     final points = <LatLng>[];
@@ -253,8 +290,8 @@ class _TripMapViewState extends State<_TripMapView> {
     );
   }
 
-  /// Ajusta los bounds del mapa para mostrar origen y destino del viaje.
-  void _fitTripBounds(Trip trip) {
+  /// Ajusta los bounds del mapa para mostrar origen, destino y bitácoras.
+  void _fitTripBounds(Trip trip, [List<TripLog> tripLogs = const []]) {
     final points = <LatLng>[];
     final origin = trip.originLocation;
     final destination = trip.destinationLocation;
@@ -268,6 +305,13 @@ class _TripMapViewState extends State<_TripMapView> {
       points.add(LatLng(destination.latitude!, destination.longitude!));
     }
 
+    // Incluir ubicaciones de bitácoras.
+    for (final log in tripLogs) {
+      if (log.hasLocation) {
+        points.add(LatLng(log.latitude!, log.longitude!));
+      }
+    }
+
     if (points.isEmpty) return;
 
     if (points.length == 1) {
@@ -278,6 +322,26 @@ class _TripMapViewState extends State<_TripMapView> {
     final bounds = LatLngBounds.fromPoints(points);
     _mapController.fitCamera(
       CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60)),
+    );
+  }
+
+  /// Muestra un bottom sheet con la información de la bitácora seleccionada.
+  void _showTripLogInfo(BuildContext context, TripLog log) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _TripLogInfoSheet(
+        tripLog: log,
+        onClose: () {
+          Navigator.of(context).pop();
+          context.read<TripMapBloc>().add(
+            const TripMapLogSelected(tripLog: null),
+          );
+        },
+      ),
     );
   }
 }
@@ -597,5 +661,182 @@ class _CoordChip extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ─── Info de bitácora seleccionada ───────────────────────────────────────────
+
+class _TripLogInfoSheet extends StatelessWidget {
+  const _TripLogInfoSheet({required this.tripLog, required this.onClose});
+
+  final TripLog tripLog;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.all(AppDefaults.padding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle y botón cerrar
+          Row(
+            children: [
+              const Spacer(),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.grey.withAlpha(77),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Tipo de evento
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withAlpha(26),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  tripLog.eventType.icon,
+                  style: const TextStyle(fontSize: 22),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tripLog.eventType.label,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tripLog.createdAt != null
+                          ? _formatDate(tripLog.createdAt!)
+                          : 'Sin fecha',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.grey.withAlpha(179),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: onClose,
+                icon: const Icon(Icons.close, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.grey.withAlpha(26),
+                ),
+              ),
+            ],
+          ),
+
+          // Descripción
+          if (tripLog.description != null &&
+              tripLog.description!.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(AppDefaults.radiusSmall),
+              ),
+              child: Text(
+                tripLog.description!,
+                style: const TextStyle(fontSize: 13, height: 1.4),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 14),
+
+          // Detalles: conductor, usuario, coordenadas
+          _buildDetailRow(
+            context,
+            icon: Icons.person,
+            label: 'Registrado por',
+            value: tripLog.user?.name ?? 'Sin información',
+          ),
+          if (tripLog.driver != null) ...[
+            const SizedBox(height: 8),
+            _buildDetailRow(
+              context,
+              icon: Icons.local_shipping,
+              label: 'Conductor',
+              value: tripLog.driver!.name,
+            ),
+          ],
+
+          // Coordenadas
+          if (tripLog.hasLocation) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _CoordChip(
+                  label: 'Ubicación',
+                  color: AppColors.gold,
+                  lat: tripLog.latitude!,
+                  lng: tripLog.longitude!,
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.grey.withAlpha(153)),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(fontSize: 12, color: AppColors.grey.withAlpha(153)),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final d = date.day.toString().padLeft(2, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final y = date.year;
+    final h = date.hour.toString().padLeft(2, '0');
+    final min = date.minute.toString().padLeft(2, '0');
+    return '$d/$m/$y $h:$min';
   }
 }

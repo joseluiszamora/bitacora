@@ -26,3 +26,13 @@ final class TripMapTripSelected extends TripMapEvent {
   @override
   List<Object?> get props => [trip];
 }
+
+/// Seleccionar una bitácora (trip log) en el mapa.
+final class TripMapLogSelected extends TripMapEvent {
+  const TripMapLogSelected({this.tripLog});
+
+  final TripLog? tripLog;
+
+  @override
+  List<Object?> get props => [tripLog];
+}

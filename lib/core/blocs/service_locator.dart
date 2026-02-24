@@ -117,7 +117,10 @@ void serviceLocatorInit() {
   );
 
   getIt.registerFactory<TripMapBloc>(
-    () => TripMapBloc(tripRepository: getIt<TripRepository>()),
+    () => TripMapBloc(
+      tripRepository: getIt<TripRepository>(),
+      tripLogRepository: getIt<TripLogRepository>(),
+    ),
   );
 
   // === Servicios (Lazy Singletons) ===

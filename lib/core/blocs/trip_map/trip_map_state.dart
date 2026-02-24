@@ -7,12 +7,16 @@ final class TripMapState extends Equatable {
     this.status = TripMapStatus.initial,
     this.trips = const [],
     this.selectedTrip,
+    this.tripLogs = const [],
+    this.selectedTripLog,
     this.errorMessage = '',
   });
 
   final TripMapStatus status;
   final List<Trip> trips;
   final Trip? selectedTrip;
+  final List<TripLog> tripLogs;
+  final TripLog? selectedTripLog;
   final String errorMessage;
 
   TripMapState copyWith({
@@ -20,6 +24,9 @@ final class TripMapState extends Equatable {
     List<Trip>? trips,
     Trip? selectedTrip,
     bool clearSelectedTrip = false,
+    List<TripLog>? tripLogs,
+    TripLog? selectedTripLog,
+    bool clearSelectedTripLog = false,
     String? errorMessage,
   }) {
     return TripMapState(
@@ -28,10 +35,21 @@ final class TripMapState extends Equatable {
       selectedTrip: clearSelectedTrip
           ? null
           : (selectedTrip ?? this.selectedTrip),
+      tripLogs: tripLogs ?? this.tripLogs,
+      selectedTripLog: clearSelectedTripLog
+          ? null
+          : (selectedTripLog ?? this.selectedTripLog),
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [status, trips, selectedTrip, errorMessage];
+  List<Object?> get props => [
+    status,
+    trips,
+    selectedTrip,
+    tripLogs,
+    selectedTripLog,
+    errorMessage,
+  ];
 }
