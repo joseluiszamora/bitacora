@@ -6,6 +6,9 @@ import '../data/repositories/client_company_repository.dart';
 import '../data/repositories/client_location_repository.dart';
 import '../data/repositories/company_client_repository.dart';
 import '../data/repositories/company_repository.dart';
+import '../data/repositories/finance_category_repository.dart';
+import '../data/repositories/finance_group_repository.dart';
+import '../data/repositories/finance_record_repository.dart';
 import '../data/repositories/state_repository.dart';
 import '../data/repositories/user_repository.dart';
 import '../data/repositories/trip_log_media_repository.dart';
@@ -18,6 +21,7 @@ import 'auth/authentication_bloc.dart';
 import 'client_company/client_company_bloc.dart';
 import 'client_location/client_location_bloc.dart';
 import 'company/company_bloc.dart';
+import 'finance/finance_bloc.dart';
 import 'login/login_bloc.dart';
 import 'my_trips/my_trips_bloc.dart';
 import 'permission/permission_bloc.dart';
@@ -59,6 +63,15 @@ void serviceLocatorInit() {
   getIt.registerLazySingleton<StateRepository>(() => StateRepository());
   getIt.registerLazySingleton<ClientLocationRepository>(
     () => ClientLocationRepository(),
+  );
+  getIt.registerLazySingleton<FinanceGroupRepository>(
+    () => FinanceGroupRepository(),
+  );
+  getIt.registerLazySingleton<FinanceCategoryRepository>(
+    () => FinanceCategoryRepository(),
+  );
+  getIt.registerLazySingleton<FinanceRecordRepository>(
+    () => FinanceRecordRepository(),
   );
 
   // === BLoCs globales (Singletons) ===
@@ -120,6 +133,14 @@ void serviceLocatorInit() {
     () => TripMapBloc(
       tripRepository: getIt<TripRepository>(),
       tripLogRepository: getIt<TripLogRepository>(),
+    ),
+  );
+
+  getIt.registerFactory<FinanceBloc>(
+    () => FinanceBloc(
+      groupRepository: getIt<FinanceGroupRepository>(),
+      categoryRepository: getIt<FinanceCategoryRepository>(),
+      recordRepository: getIt<FinanceRecordRepository>(),
     ),
   );
 

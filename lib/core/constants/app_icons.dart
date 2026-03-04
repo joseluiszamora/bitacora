@@ -30,4 +30,7 @@ class AppIcons {
   static const IconData location = FontAwesomeIcons.locationDot;
   static const IconData warehouse = FontAwesomeIcons.warehouse;
   static const IconData map = FontAwesomeIcons.mapLocationDot;
+
+  // Finanzas
+  static const IconData finance = FontAwesomeIcons.wallet;
 }
