@@ -121,6 +121,7 @@ final class FinanceRecordCreateRequested extends FinanceEvent {
     required this.categoryId,
     required this.type,
     required this.amount,
+    this.responsibleUserId,
     this.description,
     this.recordDate,
   });
@@ -130,6 +131,7 @@ final class FinanceRecordCreateRequested extends FinanceEvent {
   final String categoryId;
   final FinanceRecordType type;
   final double amount;
+  final String? responsibleUserId;
   final String? description;
   final DateTime? recordDate;
 
@@ -140,6 +142,7 @@ final class FinanceRecordCreateRequested extends FinanceEvent {
     categoryId,
     type,
     amount,
+    responsibleUserId,
     description,
     recordDate,
   ];
@@ -153,6 +156,7 @@ final class FinanceRecordUpdateRequested extends FinanceEvent {
     this.categoryId,
     this.type,
     this.amount,
+    this.responsibleUserId,
     this.description,
     this.recordDate,
   });
@@ -162,6 +166,7 @@ final class FinanceRecordUpdateRequested extends FinanceEvent {
   final String? categoryId;
   final FinanceRecordType? type;
   final double? amount;
+  final String? responsibleUserId;
   final String? description;
   final DateTime? recordDate;
 
@@ -172,6 +177,7 @@ final class FinanceRecordUpdateRequested extends FinanceEvent {
     categoryId,
     type,
     amount,
+    responsibleUserId,
     description,
     recordDate,
   ];

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../data/models/finance_category.dart';
 import '../../data/models/finance_group.dart';
 import '../../data/models/finance_record.dart';
+import '../../data/providers/user_provider.dart';
 import '../../data/repositories/finance_category_repository.dart';
 import '../../data/repositories/finance_group_repository.dart';
 import '../../data/repositories/finance_record_repository.dart';
@@ -21,9 +22,11 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
     FinanceGroupRepository? groupRepository,
     FinanceCategoryRepository? categoryRepository,
     FinanceRecordRepository? recordRepository,
+    UserProvider? userProvider,
   }) : _groupRepo = groupRepository ?? FinanceGroupRepository(),
        _categoryRepo = categoryRepository ?? FinanceCategoryRepository(),
        _recordRepo = recordRepository ?? FinanceRecordRepository(),
+       _userProvider = userProvider ?? UserProvider(),
        super(const FinanceState()) {
     // Carga
     on<FinanceLoadRequested>(_onLoadRequested);
@@ -50,6 +53,7 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
   final FinanceGroupRepository _groupRepo;
   final FinanceCategoryRepository _categoryRepo;
   final FinanceRecordRepository _recordRepo;
+  final UserProvider _userProvider;
 
   // ─── Carga ───────────────────────────────────────────────────────────
 
@@ -63,7 +67,11 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
         _groupRepo.getByCompany(event.companyId),
         _categoryRepo.getByCompany(event.companyId),
         _recordRepo.getByCompany(event.companyId),
+        _userProvider.getByCompany(event.companyId),
       ]);
+
+      final usersData = results[3] as List<Map<String, dynamic>>;
+      final users = usersData.map(FinanceUser.fromJson).toList();
 
       emit(
         state.copyWith(
@@ -71,6 +79,7 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
           groups: results[0] as List<FinanceGroup>,
           categories: results[1] as List<FinanceCategory>,
           records: results[2] as List<FinanceRecord>,
+          companyUsers: users,
           clearFilterGroupId: true,
         ),
       );
@@ -249,6 +258,7 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
         categoryId: event.categoryId,
         type: event.type,
         amount: event.amount,
+        responsibleUserId: event.responsibleUserId,
         description: event.description,
         recordDate: event.recordDate,
       );
@@ -278,6 +288,7 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
         categoryId: event.categoryId,
         type: event.type,
         amount: event.amount,
+        responsibleUserId: event.responsibleUserId,
         description: event.description,
         recordDate: event.recordDate,
       );

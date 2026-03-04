@@ -6,11 +6,12 @@ import '../api/api_client.dart';
 class FinanceRecordProvider {
   SupabaseQueryBuilder get _table => ApiClient.supabase.from('finance_records');
 
-  /// Select con joins a grupos y categorías.
+  /// Select con joins a grupos, categorías y usuario responsable.
   static const _selectWithJoins = '''
     *,
     finance_groups!inner(id, name),
-    finance_categories!inner(id, name)
+    finance_categories!inner(id, name),
+    responsible_user:profiles!finance_records_responsible_user_id_fkey(id, full_name)
   ''';
 
   /// Obtener todos los registros de una empresa con joins.

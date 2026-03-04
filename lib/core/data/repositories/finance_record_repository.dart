@@ -39,6 +39,7 @@ class FinanceRecordRepository {
     required String categoryId,
     required FinanceRecordType type,
     required double amount,
+    String? responsibleUserId,
     String? description,
     DateTime? recordDate,
   }) async {
@@ -49,6 +50,8 @@ class FinanceRecordRepository {
         'category_id': categoryId,
         'type': type.value,
         'amount': amount,
+        // ignore: use_null_aware_elements
+        if (responsibleUserId != null) 'responsible_user_id': responsibleUserId,
         'description': description,
         'record_date': (recordDate ?? DateTime.now()).toIso8601String(),
       });
@@ -66,6 +69,7 @@ class FinanceRecordRepository {
     String? categoryId,
     FinanceRecordType? type,
     double? amount,
+    String? responsibleUserId,
     String? description,
     DateTime? recordDate,
   }) async {
@@ -75,6 +79,9 @@ class FinanceRecordRepository {
       if (categoryId != null) updates['category_id'] = categoryId;
       if (type != null) updates['type'] = type.value;
       if (amount != null) updates['amount'] = amount;
+      if (responsibleUserId != null) {
+        updates['responsible_user_id'] = responsibleUserId;
+      }
       if (description != null) updates['description'] = description;
       if (recordDate != null) {
         updates['record_date'] = recordDate.toIso8601String();

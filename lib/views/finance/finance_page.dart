@@ -870,6 +870,29 @@ class _RecordCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (record.hasResponsible) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            size: 12,
+                            color: AppColors.grey.withAlpha(153),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              record.responsibleUserName ?? 'Responsable',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.grey.withAlpha(153),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     if (record.description != null &&
                         record.description!.isNotEmpty) ...[
                       const SizedBox(height: 2),

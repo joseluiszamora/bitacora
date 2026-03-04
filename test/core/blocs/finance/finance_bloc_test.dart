@@ -2,6 +2,7 @@ import 'package:bitacora/core/blocs/finance/finance_bloc.dart';
 import 'package:bitacora/core/data/models/finance_category.dart';
 import 'package:bitacora/core/data/models/finance_group.dart';
 import 'package:bitacora/core/data/models/finance_record.dart';
+import 'package:bitacora/core/data/providers/user_provider.dart';
 import 'package:bitacora/core/data/repositories/finance_category_repository.dart';
 import 'package:bitacora/core/data/repositories/finance_group_repository.dart';
 import 'package:bitacora/core/data/repositories/finance_record_repository.dart';
@@ -17,6 +18,8 @@ class MockFinanceCategoryRepository extends Mock
 
 class MockFinanceRecordRepository extends Mock
     implements FinanceRecordRepository {}
+
+class MockUserProvider extends Mock implements UserProvider {}
 
 void main() {
   // ─── Datos de prueba ─────────────────────────────────────────────────
@@ -104,22 +107,34 @@ void main() {
   final sampleCategories = [category1, category2];
   final sampleRecords = [record1, record2, record3];
 
+  const sampleUsersJson = [
+    {'id': 'u-1', 'full_name': 'Juan Pérez'},
+    {'id': 'u-2', 'full_name': 'María López'},
+  ];
+
+  final sampleFinanceUsers = sampleUsersJson
+      .map((json) => FinanceUser.fromJson(json))
+      .toList();
+
   // ─── Mocks ───────────────────────────────────────────────────────────
 
   late MockFinanceGroupRepository mockGroupRepo;
   late MockFinanceCategoryRepository mockCategoryRepo;
   late MockFinanceRecordRepository mockRecordRepo;
+  late MockUserProvider mockUserProvider;
 
   setUp(() {
     mockGroupRepo = MockFinanceGroupRepository();
     mockCategoryRepo = MockFinanceCategoryRepository();
     mockRecordRepo = MockFinanceRecordRepository();
+    mockUserProvider = MockUserProvider();
   });
 
   FinanceBloc buildBloc() => FinanceBloc(
     groupRepository: mockGroupRepo,
     categoryRepository: mockCategoryRepo,
     recordRepository: mockRecordRepo,
+    userProvider: mockUserProvider,
   );
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -319,7 +334,70 @@ void main() {
     });
 
     test('props includes all fields', () {
-      expect(record1.props.length, 11);
+      expect(record1.props.length, 13);
+    });
+
+    test('hasResponsible returns true when responsibleUserId is set', () {
+      final r = record1.copyWith(responsibleUserId: 'u-1');
+      expect(r.hasResponsible, isTrue);
+    });
+
+    test('hasResponsible returns false when no responsibleUserId', () {
+      expect(record1.hasResponsible, isFalse);
+    });
+
+    test('fromJson parses responsible_user join', () {
+      final json = {
+        'id': 'r-x',
+        'company_id': 'comp-1',
+        'group_id': 'g-1',
+        'category_id': 'c-1',
+        'type': 'EXPENSE',
+        'amount': 100,
+        'responsible_user_id': 'u-1',
+        'responsible_user': {'id': 'u-1', 'full_name': 'Juan Pérez'},
+      };
+      final result = FinanceRecord.fromJson(json);
+      expect(result.responsibleUserId, 'u-1');
+      expect(result.responsibleUserName, 'Juan Pérez');
+      expect(result.hasResponsible, isTrue);
+    });
+
+    test('copyWith updates responsibleUserId', () {
+      final copy = record1.copyWith(responsibleUserId: 'u-2');
+      expect(copy.responsibleUserId, 'u-2');
+      expect(copy.id, record1.id);
+    });
+  });
+
+  group('FinanceUser model', () {
+    test('fromJson parses id and full_name', () {
+      final user = FinanceUser.fromJson(const {
+        'id': 'u-1',
+        'full_name': 'Juan Pérez',
+      });
+      expect(user.id, 'u-1');
+      expect(user.name, 'Juan Pérez');
+    });
+
+    test('fromJson defaults to empty strings', () {
+      final user = FinanceUser.fromJson(const {});
+      expect(user.id, '');
+      expect(user.name, '');
+    });
+
+    test('two users with same data are equal', () {
+      final a = FinanceUser.fromJson(const {'id': 'u-1', 'full_name': 'Juan'});
+      final b = FinanceUser.fromJson(const {'id': 'u-1', 'full_name': 'Juan'});
+      expect(a, equals(b));
+    });
+
+    test('props includes id and name', () {
+      final user = FinanceUser.fromJson(const {
+        'id': 'u-1',
+        'full_name': 'Test',
+      });
+      expect(user.props, ['u-1', 'Test']);
     });
   });
 
@@ -409,7 +487,20 @@ void main() {
         amount: 100.0,
         recordDate: now,
       );
-      expect(e.props.length, 7);
+      expect(e.props.length, 8);
+    });
+
+    test('FinanceRecordCreateRequested with responsibleUserId', () {
+      final e = FinanceRecordCreateRequested(
+        companyId: 'comp-1',
+        groupId: 'g-1',
+        categoryId: 'c-1',
+        type: FinanceRecordType.income,
+        amount: 100.0,
+        recordDate: now,
+        responsibleUserId: 'u-1',
+      );
+      expect(e.responsibleUserId, 'u-1');
     });
 
     test('FinanceRecordUpdateRequested props', () {
@@ -544,7 +635,18 @@ void main() {
 
     test('props includes all fields', () {
       const state = FinanceState();
-      expect(state.props.length, 6);
+      expect(state.props.length, 7);
+    });
+
+    test('companyUsers defaults to empty list', () {
+      const state = FinanceState();
+      expect(state.companyUsers, isEmpty);
+    });
+
+    test('copyWith preserves companyUsers', () {
+      final state = FinanceState(companyUsers: sampleFinanceUsers);
+      final copy = state.copyWith(status: FinanceStatus.success);
+      expect(copy.companyUsers, sampleFinanceUsers);
     });
 
     test('two states with same data are equal', () {
@@ -581,6 +683,9 @@ void main() {
           when(
             () => mockRecordRepo.getByCompany(companyId),
           ).thenAnswer((_) async => sampleRecords);
+          when(
+            () => mockUserProvider.getByCompany(companyId),
+          ).thenAnswer((_) async => sampleUsersJson);
         },
         build: buildBloc,
         act: (bloc) =>
@@ -592,12 +697,14 @@ void main() {
             groups: sampleGroups,
             categories: sampleCategories,
             records: sampleRecords,
+            companyUsers: sampleFinanceUsers,
           ),
         ],
         verify: (_) {
           verify(() => mockGroupRepo.getByCompany(companyId)).called(1);
           verify(() => mockCategoryRepo.getByCompany(companyId)).called(1);
           verify(() => mockRecordRepo.getByCompany(companyId)).called(1);
+          verify(() => mockUserProvider.getByCompany(companyId)).called(1);
         },
       );
 
@@ -612,6 +719,9 @@ void main() {
           ).thenAnswer((_) async => []);
           when(
             () => mockRecordRepo.getByCompany(companyId),
+          ).thenAnswer((_) async => []);
+          when(
+            () => mockUserProvider.getByCompany(companyId),
           ).thenAnswer((_) async => []);
         },
         build: buildBloc,
@@ -890,6 +1000,7 @@ void main() {
               amount: 800.0,
               description: null,
               recordDate: now,
+              responsibleUserId: null,
             ),
           ).thenAnswer(
             (_) async => FinanceRecord(
@@ -941,6 +1052,7 @@ void main() {
               amount: 2000.0,
               description: null,
               recordDate: null,
+              responsibleUserId: null,
             ),
           ).thenAnswer((_) async => record1.copyWith(amount: 2000.0));
         },
@@ -995,6 +1107,7 @@ void main() {
               amount: 50.0,
               description: null,
               recordDate: null,
+              responsibleUserId: null,
             ),
           ).thenThrow(Exception('permission denied'));
         },

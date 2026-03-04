@@ -28,6 +28,7 @@ class _FinanceRecordFormPageState extends State<FinanceRecordFormPage> {
   late FinanceRecordType _type;
   String? _groupId;
   String? _categoryId;
+  String? _responsibleUserId;
   late TextEditingController _amountController;
   late TextEditingController _descriptionController;
   DateTime? _recordDate;
@@ -40,6 +41,7 @@ class _FinanceRecordFormPageState extends State<FinanceRecordFormPage> {
     _type = r?.type ?? FinanceRecordType.expense;
     _groupId = r?.groupId;
     _categoryId = r?.categoryId;
+    _responsibleUserId = r?.responsibleUserId;
     _amountController = TextEditingController(
       text: r?.amount.toStringAsFixed(2) ?? '',
     );
@@ -76,6 +78,7 @@ class _FinanceRecordFormPageState extends State<FinanceRecordFormPage> {
               buildWhen: (prev, curr) =>
                   prev.activeGroups != curr.activeGroups ||
                   prev.activeCategories != curr.activeCategories ||
+                  prev.companyUsers != curr.companyUsers ||
                   prev.status != curr.status,
               builder: (context, state) {
                 return Column(
@@ -83,6 +86,10 @@ class _FinanceRecordFormPageState extends State<FinanceRecordFormPage> {
                   children: [
                     // Tipo: Ingreso / Egreso
                     _buildTypeSelector(),
+                    const SizedBox(height: 16),
+
+                    // Responsable
+                    _buildResponsibleDropdown(state.companyUsers),
                     const SizedBox(height: 16),
 
                     // Grupo
@@ -231,6 +238,41 @@ class _FinanceRecordFormPageState extends State<FinanceRecordFormPage> {
     );
   }
 
+  Widget _buildResponsibleDropdown(List<FinanceUser> users) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: 'Responsable',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDefaults.radiusSmall),
+        ),
+        prefixIcon: const Icon(Icons.person_outline),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _responsibleUserId,
+          isExpanded: true,
+          isDense: true,
+          hint: const Text('Sin asignar', style: TextStyle(fontSize: 14)),
+          items: [
+            const DropdownMenuItem<String>(
+              child: Text(
+                'Sin asignar',
+                style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
+              ),
+            ),
+            ...users.map(
+              (user) => DropdownMenuItem<String>(
+                value: user.id,
+                child: Text(user.name, style: const TextStyle(fontSize: 14)),
+              ),
+            ),
+          ],
+          onChanged: (id) => setState(() => _responsibleUserId = id),
+        ),
+      ),
+    );
+  }
+
   Widget _buildGroupDropdown(List<FinanceGroup> groups) {
     return InputDecorator(
       decoration: InputDecoration(
@@ -357,6 +399,7 @@ class _FinanceRecordFormPageState extends State<FinanceRecordFormPage> {
               ? null
               : _descriptionController.text.trim(),
           recordDate: _recordDate,
+          responsibleUserId: _responsibleUserId,
         ),
       );
     } else {
@@ -371,6 +414,7 @@ class _FinanceRecordFormPageState extends State<FinanceRecordFormPage> {
               ? null
               : _descriptionController.text.trim(),
           recordDate: _recordDate,
+          responsibleUserId: _responsibleUserId,
         ),
       );
     }

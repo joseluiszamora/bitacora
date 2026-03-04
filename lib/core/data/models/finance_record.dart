@@ -41,11 +41,13 @@ class FinanceRecord extends Equatable {
     required this.categoryId,
     required this.type,
     required this.amount,
+    this.responsibleUserId,
     this.description,
     this.recordDate,
     this.createdAt,
     this.group,
     this.category,
+    this.responsibleUserName,
   });
 
   final String id;
@@ -54,6 +56,7 @@ class FinanceRecord extends Equatable {
   final String categoryId;
   final FinanceRecordType type;
   final double amount;
+  final String? responsibleUserId;
   final String? description;
   final DateTime? recordDate;
   final DateTime? createdAt;
@@ -61,6 +64,7 @@ class FinanceRecord extends Equatable {
   /// Joins opcionales.
   final FinanceGroup? group;
   final FinanceCategory? category;
+  final String? responsibleUserName;
 
   static final empty = FinanceRecord(
     id: '',
@@ -76,6 +80,10 @@ class FinanceRecord extends Equatable {
 
   bool get isIncome => type == FinanceRecordType.income;
   bool get isExpense => type == FinanceRecordType.expense;
+
+  /// Indica si el movimiento tiene un responsable asignado.
+  bool get hasResponsible =>
+      responsibleUserId != null && responsibleUserId!.isNotEmpty;
 
   /// Nombre para mostrar: "📈 Ingreso — Bs. 1,500.00" o "📉 Egreso — Bs. 200.00".
   String get displayName {
@@ -99,6 +107,13 @@ class FinanceRecord extends Equatable {
       );
     }
 
+    // Join del responsable (profiles).
+    String? responsibleUserName;
+    if (json['responsible_user'] is Map<String, dynamic>) {
+      final profile = json['responsible_user'] as Map<String, dynamic>;
+      responsibleUserName = profile['full_name'] as String?;
+    }
+
     return FinanceRecord(
       id: json['id'] as String? ?? '',
       companyId: json['company_id'] as String? ?? '',
@@ -106,6 +121,7 @@ class FinanceRecord extends Equatable {
       categoryId: json['category_id'] as String? ?? '',
       type: FinanceRecordType.fromValue(json['type'] as String? ?? 'EXPENSE'),
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
+      responsibleUserId: json['responsible_user_id'] as String?,
       description: json['description'] as String?,
       recordDate: json['record_date'] != null
           ? DateTime.tryParse(json['record_date'] as String)
@@ -115,6 +131,7 @@ class FinanceRecord extends Equatable {
           : null,
       group: group,
       category: category,
+      responsibleUserName: responsibleUserName,
     );
   }
 
@@ -126,6 +143,7 @@ class FinanceRecord extends Equatable {
       'category_id': categoryId,
       'type': type.value,
       'amount': amount,
+      'responsible_user_id': responsibleUserId,
       'description': description,
       'record_date': recordDate?.toIso8601String(),
       'created_at': createdAt?.toIso8601String(),
@@ -139,11 +157,13 @@ class FinanceRecord extends Equatable {
     String? categoryId,
     FinanceRecordType? type,
     double? amount,
+    String? responsibleUserId,
     String? description,
     DateTime? recordDate,
     DateTime? createdAt,
     FinanceGroup? group,
     FinanceCategory? category,
+    String? responsibleUserName,
   }) {
     return FinanceRecord(
       id: id ?? this.id,
@@ -152,11 +172,13 @@ class FinanceRecord extends Equatable {
       categoryId: categoryId ?? this.categoryId,
       type: type ?? this.type,
       amount: amount ?? this.amount,
+      responsibleUserId: responsibleUserId ?? this.responsibleUserId,
       description: description ?? this.description,
       recordDate: recordDate ?? this.recordDate,
       createdAt: createdAt ?? this.createdAt,
       group: group ?? this.group,
       category: category ?? this.category,
+      responsibleUserName: responsibleUserName ?? this.responsibleUserName,
     );
   }
 
@@ -168,10 +190,12 @@ class FinanceRecord extends Equatable {
     categoryId,
     type,
     amount,
+    responsibleUserId,
     description,
     recordDate,
     createdAt,
     group,
     category,
+    responsibleUserName,
   ];
 }
